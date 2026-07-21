@@ -36,6 +36,7 @@
             position: absolute; top: 0; left: 0; width: 100%; padding: 15px 20px;
             display: flex; justify-content: space-between; background: rgba(0, 0, 0, 0.4);
             border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+            z-index: 1001;
         }
         .profile-name { color: white; font-size: 24px; text-shadow: 2px 2px 0 #000; }
         .coins { color: #ffcc00; font-size: 24px; text-shadow: 2px 2px 0 #000; }
@@ -43,30 +44,30 @@
         .menu-title {
             font-size: 4rem; color: #fff;
             text-shadow: 0px 6px 0px #003399, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000, 2px 2px 0px #000;
-            margin-bottom: 40px; text-align: center; letter-spacing: 2px; transform: skew(-5deg);
+            margin-bottom: 20px; text-align: center; letter-spacing: 2px; transform: skew(-5deg);
         }
 
         .character-select-container {
-            display: flex; gap: 15px; overflow-x: auto; width: 90%; max-width: 800px; padding: 20px;
+            display: flex; gap: 15px; overflow-x: auto; width: 90%; max-width: 800px; padding: 15px;
             background: rgba(0, 0, 0, 0.5); border-radius: 15px; border: 3px solid #4d94ff;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8); min-height: 140px; align-items: center; justify-content: center;
         }
 
         .char-card {
-            min-width: 100px; height: 130px; background: #2a2a2a; border-radius: 12px;
+            min-width: 90px; height: 110px; background: #2a2a2a; border-radius: 12px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             border: 4px solid #111; cursor: pointer;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 8px 0px #111;
+            box-shadow: 0 6px 0px #111; flex-shrink: 0;
         }
 
         .char-card.selected {
-            border-color: #66ff33; background: #f0f0f0; transform: scale(1.1) translateY(-10px);
-            box-shadow: 0 10px 0px #339900, 0 15px 20px rgba(0,0,0,0.5);
+            border-color: #66ff33; background: #f0f0f0; transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 8px 0px #339900, 0 10px 15px rgba(0,0,0,0.5);
         }
         .char-card.selected .char-name { color: #000; text-shadow: none; }
-        .char-icon { width: 45px; height: 45px; border-radius: 50%; border: 3px solid #000; margin-bottom: 8px; }
-        .char-name { font-size: 16px; color: #fff; text-shadow: 1px 1px 0 #000; }
+        .char-icon { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #000; margin-bottom: 6px; }
+        .char-name { font-size: 14px; color: #fff; text-shadow: 1px 1px 0 #000; }
 
         .btn-play {
             position: absolute; bottom: 30px; right: 30px; width: 200px; height: 75px;
@@ -74,7 +75,7 @@
             border: 4px solid #fff; border-radius: 15px; font-size: 2.5rem;
             font-family: 'Lilita One', cursive; color: #fff;
             text-shadow: 3px 3px 0px #cc5200; box-shadow: 0 8px 0px #cc5200, 0 10px 20px rgba(0,0,0,0.5);
-            cursor: pointer;
+            cursor: pointer; z-index: 1001;
         }
         .btn-play:active { transform: translateY(8px); box-shadow: 0 0px 0px #cc5200; }
 
@@ -90,7 +91,6 @@
             transform: translate(-50%, -50%);
         }
 
-        /* ROBLOX / BRAWL STARS JOYSTICK */
         #joystick-zone {
             position: absolute; bottom: 40px; left: 40px; width: 140px; height: 140px;
             background: rgba(0, 0, 0, 0.4); border: 4px solid rgba(255, 255, 255, 0.4);
@@ -104,7 +104,6 @@
             box-shadow: 0 5px 10px rgba(0,0,0,0.5);
         }
 
-        /* AKSİYON BUTONLARI */
         .touch-btn {
             position: absolute; border: 4px solid #000; border-radius: 50%; pointer-events: auto;
             display: flex; justify-content: center; align-items: center;
@@ -131,7 +130,7 @@
         </div>
         <div class="menu-title">ELEMENT<br>SAVAŞLARI</div>
         <div class="character-select-container" id="char-container"></div>
-        <button class="btn-play" onclick="startGame()">OYNA</button>
+        <button class="btn-play" id="btn-start">OYNA</button>
     </div>
 
     <div id="game-ui">
@@ -156,18 +155,24 @@
         ];
 
         let selectedChar = CHARACTERS[0];
-        const charContainer = document.getElementById('char-container');
-        CHARACTERS.forEach((char, index) => {
-            const card = document.createElement('div');
-            card.className = `char-card ${index === 0 ? 'selected' : ''}`;
-            card.onclick = () => {
-                document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                selectedChar = char;
-            };
-            const icon = document.createElement('div'); icon.className = 'char-icon'; icon.style.background = char.icon;
-            const name = document.createElement('div'); name.className = 'char-name'; name.innerText = char.name;
-            card.appendChild(icon); card.appendChild(name); charContainer.appendChild(card);
+
+        // DOM yüklendikten sonra menü elemanlarını güvenle oluştur
+        window.addEventListener('DOMContentLoaded', () => {
+            const charContainer = document.getElementById('char-container');
+            CHARACTERS.forEach((char, index) => {
+                const card = document.createElement('div');
+                card.className = `char-card ${index === 0 ? 'selected' : ''}`;
+                card.onclick = () => {
+                    document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    selectedChar = char;
+                };
+                const icon = document.createElement('div'); icon.className = 'char-icon'; icon.style.background = char.icon;
+                const name = document.createElement('div'); name.className = 'char-name'; name.innerText = char.name;
+                card.appendChild(icon); card.appendChild(name); charContainer.appendChild(card);
+            });
+
+            document.getElementById('btn-start').addEventListener('click', startGame);
         });
 
         // SAHNE VE FİZİK
@@ -208,8 +213,8 @@
             const sunLight = new THREE.DirectionalLight(0xffffff, 1.4);
             sunLight.position.set(100, 250, 100);
             sunLight.castShadow = true;
-            sunLight.shadow.mapSize.width = 4096;
-            sunLight.shadow.mapSize.height = 4096;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
             sunLight.shadow.camera.near = 0.5;
             sunLight.shadow.camera.far = 500;
             const d = 200;
@@ -221,14 +226,11 @@
             createUltraMegaCity();
         }
 
-        // --- DİPE DİBE, BOL PENCERELİ HARİTA VE 1500+ DETAY ---
         function createUltraMegaCity() {
-            // Ana Zemin (Koyu Asfalt)
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.85 });
             const ground = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), groundMat);
             ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
 
-            // Materyal Tanımlamaları
             const buildingMats = [
                 new THREE.MeshStandardMaterial({ color: 0x2b3e50, roughness: 0.5, metalness: 0.3 }),
                 new THREE.MeshStandardMaterial({ color: 0x7f8c8d, roughness: 0.6, metalness: 0.2 }),
@@ -244,13 +246,11 @@
             const foliageMat = new THREE.MeshStandardMaterial({ color: 0x145a32, roughness: 0.9 });
             const trunkMat = new THREE.MeshStandardMaterial({ color: 0x51361a });
 
-            // SIKI BİNA DÜZENİ VE ÇOKLU PENCERELER
-            // Döngü aralıklarını 60'tan 28'e indirerek binaları birbirine yapıştırdık
             for (let x = -200; x <= 200; x += 28) {
                 for (let z = -200; z <= 200; z += 28) {
-                    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue; // Oyuncu başlangıç meydanı
+                    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue;
 
-                    const h = 30 + Math.random() * 65; // Çok daha yüksek gökdelenler
+                    const h = 30 + Math.random() * 65;
                     const w = 20 + Math.random() * 4;
                     const d = 20 + Math.random() * 4;
 
@@ -260,43 +260,33 @@
                     building.castShadow = true; building.receiveShadow = true;
                     scene.add(building);
 
-                    // ÇATI DETAYLARI (1500+ Detay Listesinden)
-                    // 1. Klima Santralleri
                     const ac = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 3), metalMat);
                     ac.position.set(x - 3, h + 1, z - 3); ac.castShadow = true; scene.add(ac);
 
-                    // 2. Havalandırma Boruları
                     const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 4), metalMat);
                     pipe.rotation.z = Math.PI / 2; pipe.position.set(x + 2, h + 2, z + 4); scene.add(pipe);
 
-                    // 3. Su Depoları (Ahşap / Metal Silindirler)
                     if(Math.random() > 0.4) {
                         const tank = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 4), waterTankMat);
                         tank.position.set(x + 4, h + 2, z - 4); tank.castShadow = true; scene.add(tank);
                     }
 
-                    // 4. Antenler
                     if(Math.random() > 0.5) {
                         const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6), darkMetalMat);
                         ant.position.set(x - 4, h + 3, z + 2); scene.add(ant);
                     }
 
-                    // MUZZAM SAYIDA PENCERE (Dört Cepheye de Yoğun Pencere)
                     const winGeo = new THREE.PlaneGeometry(1.0, 1.8);
                     for (let yWin = 4; yWin < h - 4; yWin += 4) {
                         for (let offset = -w/2 + 3; offset < w/2 - 2; offset += 3) {
-                            // Ön cephe pencereleri
                             const w1 = new THREE.Mesh(winGeo, windowMat);
                             w1.position.set(x + offset, yWin, z + d/2 + 0.02); scene.add(w1);
-                            // Arka cephe pencereleri
                             const w2 = new THREE.Mesh(winGeo, windowMat);
                             w2.position.set(x + offset, yWin, z - d/2 - 0.02); w2.rotation.y = Math.PI; scene.add(w2);
                         }
                         for (let offset = -d/2 + 3; offset < d/2 - 2; offset += 3) {
-                            // Sağ cephe pencereleri
                             const w3 = new THREE.Mesh(winGeo, windowMat);
                             w3.position.set(x + w/2 + 0.02, yWin, z + offset); w3.rotation.y = Math.PI / 2; scene.add(w3);
-                            // Sol cephe pencereleri
                             const w4 = new THREE.Mesh(winGeo, windowMat);
                             w4.position.set(x - w/2 - 0.02, yWin, z + offset); w4.rotation.y = -Math.PI / 2; scene.add(w4);
                         }
@@ -304,27 +294,22 @@
                 }
             }
 
-            // CADDE VE KALDIRIM DETAYLARI (1500+ Detay Nesnesinin Geri Kalanı)
             for (let i = -250; i <= 250; i += 12) {
-                // Elektrik Direkleri ve Sokak Lambaları
                 const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, 10), darkMetalMat);
                 pole.position.set(i, 5, -13); pole.castShadow = true;
                 const lightBox = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 0.8), metalMat);
                 lightBox.position.set(i, 10, -12); scene.add(pole, lightBox);
 
-                // Yangın Muslukları (Kırmızı Küçük Silindirler)
                 if(Math.random() > 0.6) {
                     const hyd = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5), hydMat);
                     hyd.position.set(i + 2, 0.75, -12.5); hyd.castShadow = true; scene.add(hyd);
                 }
 
-                // Çöp Kutuları (Yeşil Kutular)
                 if(Math.random() > 0.5) {
                     const bin = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.4, 0.8), binMat);
                     bin.position.set(i - 3, 0.7, -12.5); bin.castShadow = true; scene.add(bin);
                 }
 
-                // Yoğun Çalılar ve Sokak Ağaçları
                 if(Math.random() > 0.3) {
                     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 4), trunkMat);
                     trunk.position.set(i, 2, 13);
@@ -333,13 +318,11 @@
                     scene.add(trunk, foliage);
                 }
                 
-                // Kaldırım Taşları Detayı (Küçük çıkıntılarla gerçekçilik katma)
                 const curb = new THREE.Mesh(new THREE.BoxGeometry(10, 0.4, 2), groundMat);
                 curb.position.set(i, 0.2, 13.5); curb.receiveShadow = true; scene.add(curb);
             }
         }
 
-        // --- HAREKET VE AKSİYON SİSTEMİ ---
         function jump() {
             if (isGrounded) {
                 playerVelocityY = jumpStrength;
@@ -350,7 +333,6 @@
         }
 
         function setupControls() {
-            // Klavye Kontrolleri
             window.addEventListener('keydown', (e) => {
                 const key = e.key.toLowerCase();
                 if (key === 'w') keys.w = true; if (key === 's') keys.s = true;
@@ -364,7 +346,6 @@
                 if (key === 'a') keys.a = false; if (key === 'd') keys.d = false;
             });
 
-            // PC Fare Bakışı
             window.addEventListener('mousedown', (e) => {
                 if (e.button === 2) { isRightMouseDown = true; previousMousePosition = { x: e.clientX, y: e.clientY }; }
             });
@@ -378,7 +359,6 @@
                 previousMousePosition = { x: e.clientX, y: e.clientY };
             });
 
-            // SANAL JOYSTICK SÜRÜKLEME SİSTEMİ
             const joyZone = document.getElementById('joystick-zone');
             const joyKnob = document.getElementById('joystick-knob');
             let joyActive = false; let joyCenter = { x: 0, y: 0 };
@@ -409,15 +389,13 @@
             joyZone.addEventListener('touchstart', handleJoyStart); joyZone.addEventListener('touchmove', handleJoyMove); joyZone.addEventListener('touchend', handleJoyEnd);
             joyZone.addEventListener('mousedown', handleJoyStart); window.addEventListener('mousemove', handleJoyMove); window.addEventListener('mouseup', handleJoyEnd);
 
-            // MOBİL BUTON TETİKLEYİCİLERİ
             const shootBtn = document.getElementById('btn-shoot-mobile');
             shootBtn.addEventListener('touchstart', (e) => { e.preventDefault(); shootElement(); shootBtn.style.transform = 'scale(0.9)'; setTimeout(() => shootBtn.style.transform = 'none', 100);});
-            shootBtn.addEventListener('mousedown', () => shootElement());
+            shootBtn.addEventListener('click', () => shootElement());
             const jumpBtn = document.getElementById('btn-jump-mobile');
             jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
-            jumpBtn.addEventListener('mousedown', () => jump(); });
+            jumpBtn.addEventListener('click', () => jump());
 
-            // DOKUNMATİK EKRAN BAKŞI (Sağ Taraf Sürükleme)
             let touchStartX = 0, touchStartY = 0; let activeLookTouchId = null;
             window.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.touch-btn') || e.target.closest('#joystick-zone')) return;
@@ -444,7 +422,6 @@
             });
         }
 
-        // --- ELEMENT MERMİSİ VE PARLAMA EFEKTİ ---
         function shootElement() {
             const projGeo = new THREE.SphereGeometry(1.4, 32, 32);
             const projMat = new THREE.MeshStandardMaterial({ 
@@ -466,7 +443,6 @@
             initScene(); setupControls(); animate();
         }
 
-        // --- FİZİK VE DÖNGÜ ---
         function animate() {
             requestAnimationFrame(animate);
 
@@ -486,12 +462,10 @@
                 camera.position.addScaledVector(side, moveVector.x * moveSpeed);
             }
 
-            // Yerçekimi & Zıplama
             camera.position.y += playerVelocityY;
             playerVelocityY += gravity;
             if (camera.position.y <= playerHeight) { camera.position.y = playerHeight; playerVelocityY = 0; isGrounded = true; }
 
-            // Mermi İlerlemesi
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const p = projectiles[i]; p.position.add(p.userData.velocity);
                 if (p.position.distanceTo(camera.position) > 350) { scene.remove(p); projectiles.splice(i, 1); }
