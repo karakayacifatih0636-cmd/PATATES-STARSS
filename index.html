@@ -2,312 +2,435 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Element Savaşları 3D - Şehir Haritası</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Element Savaşları - Brawl Edition</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        * {
+            box-sizing: border-box;
             user-select: none;
+            -webkit-user-select: none;
         }
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Fredoka One', 'Segoe UI', Roboto, sans-serif;
         }
-        #ui {
+
+        /* --- BRAWL STARS TARZI NEŞELİ MENÜ --- */
+        #menu-overlay {
             position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #a1c4fd 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .menu-title {
+            font-size: 3rem;
+            color: #fff;
+            text-shadow: 4px 4px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .character-select-container {
             display: flex;
             gap: 15px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 15px 25px;
-            border-radius: 15px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow-x: auto;
+            width: 90%;
+            padding: 20px 10px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 25px;
+            border: 4px solid #fff;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
-        .element-btn {
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            border: none;
-            border-radius: 8px;
+
+        .char-card {
+            min-width: 110px;
+            height: 140px;
+            background: #fff;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid #ccc;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s, border-color 0.2s;
+            box-shadow: 0 6px 0px rgba(0,0,0,0.2);
         }
-        .element-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+
+        .char-card.selected {
+            border-color: #ffcc00;
+            transform: scale(1.08);
+            box-shadow: 0 8px 0px #d4a000;
         }
-        .element-btn:active {
-            transform: translateY(0);
+
+        .char-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-bottom: 10px;
         }
-        #btn-fire { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
-        #btn-water { background: linear-gradient(135deg, #1e3c72, #2a5298); }
-        #btn-air { background: linear-gradient(135deg, #799f0c, #acbb78); }
-        #btn-earth { background: linear-gradient(135deg, #bf8d3c, #83541e); }
-        
-        #info {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            background: rgba(0,0,0,0.5);
-            padding: 10px 20px;
-            border-radius: 8px;
+
+        .char-name {
             font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .btn-play {
+            width: 220px;
+            height: 70px;
+            background: linear-gradient(180deg, #ffcc00 0%, #ff9900 100%);
+            border: 4px solid #fff;
+            border-radius: 35px;
+            font-size: 2rem;
+            color: #fff;
+            font-weight: 900;
+            text-shadow: 2px 2px 0px #000;
+            box-shadow: 0 8px 0px #cc7a00, 0 15px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+            margin-bottom: 30px;
+            transition: active 0.1s;
+        }
+
+        .btn-play:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0px #cc7a00;
+        }
+
+        /* --- OYUN İÇİ MOBİL KONTROLLER --- */
+        #game-ui {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
+        }
+
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #000;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Touch / Dokunmatik Butonlar */
+        .touch-btn {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px #000;
+            touch-action: manipulation;
+        }
+
+        #btn-shoot {
+            bottom: 40px;
+            right: 40px;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 50, 50, 0.6);
+            border-color: #ff4d4d;
+        }
+
+        #btn-up {
+            bottom: 130px;
+            right: 40px;
+            width: 60px;
+            height: 60px;
+        }
+
+        #btn-down {
+            bottom: 40px;
+            right: 130px;
+            width: 60px;
+            height: 60px;
+        }
+
+        /* Sanal Joystick Alanı */
+        #joystick-zone {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: auto;
+        }
+
+        #joystick-knob {
+            position: absolute;
+            top: 35px;
+            left: 35px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
-    <div id="info">
-        <h3>Element Savaşları</h3>
-        <p>Sol Tık + Sürükle: Kamerayı Döndür | Fare Tekerleği: Yakınlaş</p>
-        <p>Seçili Element: <span id="current-element" style="color: #ff4b2b; font-weight: bold;">Ateş</span></p>
+    <div id="menu-overlay">
+        <div class="menu-title">ELEMENT SAVAŞLARI</div>
+        
+        <div class="character-select-container" id="char-container">
+            </div>
+
+        <button class="btn-play" onclick="startGame()">OYNA</button>
     </div>
 
-    <div id="ui">
-        <button class="element-btn" id="btn-fire" onclick="selectElement('Ateş', 0xff4500)">1. Ateş</button>
-        <button class="element-btn" id="btn-water" onclick="selectElement('Su', 0x1e90ff)">2. Su</button>
-        <button class="element-btn" id="btn-air" onclick="selectElement('Hava', 0x87ceeb)">3. Hava</button>
-        <button class="element-btn" id="btn-earth" onclick="selectElement('Toprak', 0x8b4513)">4. Toprak</button>
+    <div id="game-ui">
+        <div class="crosshair"></div>
+        <div id="joystick-zone">
+            <div id="joystick-knob"></div>
+        </div>
+        <div class="touch-btn" id="btn-up">YÜKSEL</div>
+        <div class="touch-btn" id="btn-down">ALÇAL</div>
+        <div class="touch-btn" id="btn-shoot">ATEŞ</div>
     </div>
-
-    <div id="canvas-container"></div>
 
     <script>
-        // --- SAHNE VE KAMERA KURULUMU ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a2e);
-        scene.fog = new THREE.FogExp2(0x1a1a2e, 0.005);
+        // --- 10 KARAKTER VE ELEMENT LİSTESİ ---
+        const CHARACTERS = [
+            { name: "Ateş", color: 0xff3300, icon: "#ff3300" },
+            { name: "Su", color: 0x0099ff, icon: "#0099ff" },
+            { name: "Hava", color: 0x99ffff, icon: "#99ffff" },
+            { name: "Toprak", color: 0x8b5a2b, icon: "#8b5a2b" },
+            // Ek 6 Mantıklı Karakter/Element
+            { name: "Şimşek", color: 0xffff00, icon: "#ffff00" },
+            { name: "Buz", color: 0x00ffff, icon: "#00ffff" },
+            { name: "Gölge", color: 0x4b0082, icon: "#4b0082" },
+            { name: "Işık", color: 0xfff8dc, icon: "#fff8dc" },
+            { name: "Doğa", color: 0x228b22, icon: "#228b22" },
+            { name: "Lav", color: 0xff4500, icon: "#ff4500" }
+        ];
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(100, 80, 120);
+        let selectedChar = CHARACTERS[0];
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        // Menü Karakterlerini Oluşturma
+        const charContainer = document.getElementById('char-container');
+        CHARACTERS.forEach((char, index) => {
+            const card = document.createElement('div');
+            card.className = `char-card ${index === 0 ? 'selected' : ''}`;
+            card.onclick = () => {
+                document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedChar = char;
+            };
 
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Yerin altına girmeyi engeller
+            const icon = document.createElement('div');
+            icon.className = 'char-icon';
+            icon.style.background = char.icon;
 
-        // --- IŞIKLANDIRMA ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-        scene.add(ambientLight);
+            const name = document.createElement('div');
+            name.className = 'char-name';
+            name.innerText = char.name;
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(100, 150, 50);
-        dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 2048;
-        dirLight.shadow.mapSize.height = 2048;
-        dirLight.shadow.camera.near = 0.5;
-        dirLight.shadow.camera.far = 500;
-        const d = 150;
-        dirLight.shadow.camera.left = -d;
-        dirLight.shadow.camera.right = d;
-        dirLight.shadow.camera.top = d;
-        dirLight.shadow.camera.bottom = -d;
-        scene.add(dirLight);
+            card.appendChild(icon);
+            card.appendChild(name);
+            charContainer.appendChild(card);
+        });
 
-        // --- ZEMİN VE YOLLAR ---
-        const groundGeo = new THREE.PlaneGeometry(300, 300);
-        const groundMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
-        scene.add(ground);
+        // --- SAHNE, KAMERA VE RENDERER ---
+        let scene, camera, renderer;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let moveUp = false, moveDown = false;
+        let projectiles = [];
 
-        // Grid Yollar
-        const roadMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
-        for(let i = -120; i <= 120; i += 40) {
-            // Dikey Yollar
-            const roadV = new THREE.Mesh(new THREE.PlaneGeometry(12, 300), roadMat);
-            roadV.rotation.x = -Math.PI / 2;
-            roadV.position.set(i, 0.01, 0);
-            roadV.receiveShadow = true;
-            scene.add(roadV);
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb); // Neşeli Gökyüzü Mavisi
+            scene.fog = new THREE.FogExp2(0x87ceeb, 0.003);
 
-            // Yatay Yollar
-            const roadH = new THREE.Mesh(new THREE.PlaneGeometry(300, 12), roadMat);
-            roadH.rotation.x = -Math.PI / 2;
-            roadH.position.set(0, 0.01, i);
-            roadH.receiveShadow = true;
-            scene.add(roadH);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 0); // Karakterin göz seviyesi
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Işıklar
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            sunLight.position.set(100, 150, 50);
+            sunLight.castShadow = true;
+            scene.add(sunLight);
+
+            // Gerçekçi Şehir & Zemin
+            createCity();
+            createNPCs();
         }
 
-        // --- DETAYLI ŞEHİR ÜRETİMİ (400+ Detay Elemanı) ---
-        let totalDetails = 0;
+        // --- DETAYLI ŞEHİR ÜRETİMİ ---
+        function createCity() {
+            // Zemin
+            const ground = new THREE.Mesh(
+                new THREE.PlaneGeometry(500, 500),
+                new THREE.MeshStandardMaterial({ color: 0x333333 })
+            );
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
 
-        // Materyal Havuzu
-        const buildingMaterials = [
-            new THREE.MeshStandardMaterial({ color: 0x3a405a, roughness: 0.2 }),
-            new THREE.MeshStandardMaterial({ color: 0x685044, roughness: 0.5 }),
-            new THREE.MeshStandardMaterial({ color: 0x455a64, roughness: 0.3 }),
-            new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.4 })
-        ];
-        const windowMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b });
-        const propMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
-        const foliageMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32 });
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4e342e });
+            // Yollar ve Binalar
+            const bMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2 });
+            const windowMat = new THREE.MeshBasicMaterial({ color: 0xffff99 });
 
-        // Binalar ve Çatı Detayları
-        for (let x = -100; x <= 100; x += 40) {
-            for (let z = -100; z <= 100; z += 40) {
-                // Yolların üzerine bina dikme
-                if (Math.abs(x) === 0 || Math.abs(z) === 0) continue;
+            for (let x = -200; x <= 200; x += 40) {
+                for (let z = -200; z <= 200; z += 40) {
+                    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue; // Doğma alanı boş kalsın
 
-                // Blok içi rastgele bina konumlandırma
-                const buildingCount = 2; 
-                for(let b = 0; b < buildingCount; b++) {
-                    const h = 15 + Math.random() * 35;
-                    const w = 10 + Math.random() * 8;
-                    const d = 10 + Math.random() * 8;
-                    const offsetX = (Math.random() - 0.5) * 15;
-                    const offsetZ = (Math.random() - 0.5) * 15;
-
-                    const bMat = buildingMaterials[Math.floor(Math.random() * buildingMaterials.length)];
-                    const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bMat);
-                    building.position.set(x + offsetX, h / 2, z + offsetZ);
+                    const h = 20 + Math.random() * 60;
+                    const building = new THREE.Mesh(new THREE.BoxGeometry(25, h, 25), bMat);
+                    building.position.set(x, h / 2, z);
                     building.castShadow = true;
                     building.receiveShadow = true;
                     scene.add(building);
-                    totalDetails++;
 
-                    // Çatı Detayı: Havalandırma/Klima Üniteleri
-                    const acGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-                    const ac = new THREE.Mesh(acGeo, propMat);
-                    ac.position.set(x + offsetX + 1, h + 0.75, z + offsetZ + 1);
-                    scene.add(ac);
-                    totalDetails++;
-
-                    // Pencere Detayları
-                    for (let yWin = 3; yWin < h - 2; yWin += 4) {
-                        const winGeo = new THREE.PlaneGeometry(0.8, 1.2);
-                        const win = new THREE.Mesh(winGeo, windowMat);
-                        win.position.set(x + offsetX, yWin, z + offsetZ + d/2 + 0.01);
+                    // Pencereler (Gerçekçilik için)
+                    for(let y = 5; y < h - 5; y += 8) {
+                        const win = new THREE.Mesh(new THREE.PlaneGeometry(20, 3), windowMat);
+                        win.position.set(x, y, z + 12.6);
                         scene.add(win);
-                        totalDetails++;
                     }
                 }
             }
         }
 
-        // Sokak Lambaları, Ağaçlar ve Çöp Kutuları (Kaldırımlar boyunca)
-        for (let i = -130; i <= 130; i += 15) {
-            if (i % 40 === 0) continue; // Kavşaklara denk getirme
-
-            // Sokak Lambaları
-            const createLamp = (lx, lz) => {
-                const group = new THREE.Group();
-                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 6), propMat);
-                pole.position.y = 3;
-                const lightBulb = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshBasicMaterial({color: 0xffffee}));
-                lightBulb.position.set(0, 6, 0.5);
-                group.add(pole, lightBulb);
-                group.position.set(lx, 0, lz);
-                scene.add(group);
-                totalDetails += 2;
-            };
-
-            createLamp(i, -6);
-            createLamp(i, 6);
-
-            // Ağaçlar
-            const createTree = (tx, tz) => {
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2), trunkMat);
-                trunk.position.set(tx, 1, tz);
-                const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(2), foliageMat);
-                foliage.position.set(tx, 3, tz);
-                foliage.castShadow = true;
-                scene.add(trunk, foliage);
-                totalDetails += 2;
-            };
-
-            if (Math.random() > 0.3) createTree(i, -8);
-            if (Math.random() > 0.3) createTree(i, 8);
+        // --- NPC / DİĞER KARAKTERLER ---
+        function createNPCs() {
+            const npcMat = new THREE.MeshStandardMaterial({ color: 0xff0055 });
+            for(let i = 0; i < 15; i++) {
+                const npc = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 4), npcMat);
+                npc.position.set((Math.random() - 0.5) * 200, 2, (Math.random() - 0.5) * 200);
+                scene.add(npc);
+            }
         }
 
-        console.log("Şehirdeki Toplam Oluşturulan Detay Sayısı: ~" + totalDetails);
+        // --- KONTROLLER (DOKUNMATİK & KLAVYE) ---
+        let touchStartX = 0, touchStartY = 0;
 
-        // --- ELEMENT SİSTEMİ VE ETKİLEŞİM ---
-        let currentElementColor = 0xff4500;
-        let projectiles = [];
+        function setupControls() {
+            // Bakış Yönü Değiştirme (Dokunup Sürükleme)
+            window.addEventListener('touchstart', (e) => {
+                if(e.touches[0].clientX > window.innerWidth / 2) {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                }
+            });
 
-        function selectElement(name, color) {
-            currentElementColor = color;
-            document.getElementById('current-element').innerText = name;
-            document.getElementById('current-element').style.color = '#' + color.toString(16);
+            window.addEventListener('touchmove', (e) => {
+                if(e.touches[0].clientX > window.innerWidth / 2) {
+                    const deltaX = e.touches[0].clientX - touchStartX;
+                    const deltaY = e.touches[0].clientY - touchStartY;
+
+                    camera.rotation.y -= deltaX * 0.005;
+                    camera.rotation.x -= deltaY * 0.005;
+
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                }
+            });
+
+            // Buton Etkileşimleri
+            document.getElementById('btn-up').ontouchstart = () => moveUp = true;
+            document.getElementById('btn-up').ontouchend = () => moveUp = false;
+            
+            document.getElementById('btn-down').ontouchstart = () => moveDown = true;
+            document.getElementById('btn-down').ontouchend = () => moveDown = false;
+
+            document.getElementById('btn-shoot').ontouchstart = shootElement;
         }
 
-        // Tıklama ile Element Büyüsü/Ateşi Fırlatma
-        window.addEventListener('click', (e) => {
-            // UI üzerine tıklandıysa ateş etme
-            if (e.target.tagName === 'BUTTON' || e.target.closest('#ui') || e.target.closest('#info')) return;
+        // Element Ateşleme
+        function shootElement() {
+            const projGeo = new THREE.SphereGeometry(1.2, 16, 16);
+            const projMat = new THREE.MeshBasicMaterial({ color: selectedChar.color });
+            const proj = new THREE.Mesh(projGeo, projMat);
 
-            const raycaster = new THREE.Raycaster();
-            const mouse = new THREE.Vector2(
-                (e.clientX / window.innerWidth) * 2 - 1,
-                -(e.clientY / window.innerHeight) * 2 + 1
-            );
+            proj.position.copy(camera.position);
+            
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            proj.userData = { velocity: dir.multiplyScalar(2) };
 
-            raycaster.setFromCamera(mouse, camera);
+            scene.add(proj);
+            projectiles.push(proj);
+        }
 
-            // Fırlatılan Element Objesi
-            const projGeo = new THREE.SphereGeometry(1.5, 16, 16);
-            const projMat = new THREE.MeshBasicMaterial({ color: currentElementColor });
-            const projectile = new THREE.Mesh(projGeo, projMat);
+        // --- OYUNU BAŞLAT ---
+        function startGame() {
+            document.getElementById('menu-overlay').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
 
-            // Başlangıç Pozisyonu (Kamera Önü)
-            projectile.position.copy(camera.position);
+            initScene();
+            setupControls();
+            animate();
+        }
 
-            // Hedef Yönü
-            const targetVec = raycaster.ray.direction.clone().multiplyScalar(2);
-            projectile.userData = { velocity: targetVec, life: 0 };
-
-            scene.add(projectile);
-            projectiles.push(projectile);
-        });
-
-        // --- ANIMASYON VE RENDER DÖNGÜSÜ ---
+        // --- OYUN DÖNGÜSÜ ---
         function animate() {
             requestAnimationFrame(animate);
 
-            // Mermileri/Elementleri Hareket Ettir
+            // Uçma / Dikey Hareket
+            if (moveUp) camera.position.y += 0.5;
+            if (moveDown && camera.position.y > 2) camera.position.y -= 0.5;
+
+            // Mermi / Element Hareketleri
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const p = projectiles[i];
                 p.position.add(p.userData.velocity);
-                p.userData.life++;
 
-                // 100 kare sonra yok et (Bellek temizliği)
-                if (p.userData.life > 100) {
+                if (p.position.distanceTo(camera.position) > 200) {
                     scene.remove(p);
                     projectiles.splice(i, 1);
                 }
             }
 
-            controls.update();
             renderer.render(scene, camera);
         }
 
-        // Pencere Boyutu Değişimi
+        // Ekran Boyutu Değişimi
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
         });
-
-        animate();
     </script>
 </body>
 </html>
