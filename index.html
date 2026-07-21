@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Element Savaşları - Ultra Mega Şehir</title>
+    <title>Element Savaşları - Rastgele Şehir</title>
     <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
     <style>
         * {
@@ -156,7 +156,6 @@
 
         let selectedChar = CHARACTERS[0];
 
-        // DOM yüklendikten sonra menü elemanlarını güvenle oluştur
         window.addEventListener('DOMContentLoaded', () => {
             const charContainer = document.getElementById('char-container');
             CHARACTERS.forEach((char, index) => {
@@ -175,7 +174,6 @@
             document.getElementById('btn-start').addEventListener('click', startGame);
         });
 
-        // SAHNE VE FİZİK
         let scene, camera, renderer;
         let keys = { w: false, a: false, s: false, d: false };
         let projectiles = [];
@@ -223,10 +221,11 @@
             sunLight.shadow.bias = -0.0002;
             scene.add(sunLight);
 
-            createUltraMegaCity();
+            createRandomCity();
         }
 
-        function createUltraMegaCity() {
+        /* --- RASTGELE BOŞLUKLU DÜZENSİZ ŞEHİR OLUŞTURUCU --- */
+        function createRandomCity() {
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.85 });
             const ground = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), groundMat);
             ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
@@ -246,80 +245,84 @@
             const foliageMat = new THREE.MeshStandardMaterial({ color: 0x145a32, roughness: 0.9 });
             const trunkMat = new THREE.MeshStandardMaterial({ color: 0x51361a });
 
-            for (let x = -200; x <= 200; x += 28) {
-                for (let z = -200; z <= 200; z += 28) {
-                    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue;
+            const winGeo = new THREE.PlaneGeometry(1.0, 1.8);
 
-                    const h = 30 + Math.random() * 65;
-                    const w = 20 + Math.random() * 4;
-                    const d = 20 + Math.random() * 4;
+            // Binaların pozisyonlarını saklayıp çakışmayı ve rastgele aralıkları yönetme
+            const totalGridSteps = 15;
+            const cellSize = 32;
 
-                    const bMat = buildingMats[Math.floor(Math.random() * buildingMats.length)];
-                    const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bMat);
-                    building.position.set(x, h / 2, z);
-                    building.castShadow = true; building.receiveShadow = true;
-                    scene.add(building);
+            for (let i = -totalGridSteps; i <= totalGridSteps; i++) {
+                for (let j = -totalGridSteps; j <= totalGridSteps; j++) {
+                    // Oyuncu doğma noktasını açık bırak
+                    if (Math.abs(i) < 2 && Math.abs(j) < 2) continue;
 
-                    const ac = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 3), metalMat);
-                    ac.position.set(x - 3, h + 1, z - 3); ac.castShadow = true; scene.add(ac);
+                    // Her hücrede bina olma ihtimali (%70) -> Rastgele boşluklar ve meydanlar oluşturur
+                    if (Math.random() > 0.3) {
+                        // Hücre içi rastgele kaydırma (Offset)
+                        const offsetX = (Math.random() - 0.5) * 16;
+                        const offsetZ = (Math.random() - 0.5) * 16;
 
-                    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 4), metalMat);
-                    pipe.rotation.z = Math.PI / 2; pipe.position.set(x + 2, h + 2, z + 4); scene.add(pipe);
+                        const x = i * cellSize + offsetX;
+                        const z = j * cellSize + offsetZ;
 
-                    if(Math.random() > 0.4) {
-                        const tank = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 4), waterTankMat);
-                        tank.position.set(x + 4, h + 2, z - 4); tank.castShadow = true; scene.add(tank);
-                    }
+                        const h = 25 + Math.random() * 65;
+                        const w = 12 + Math.random() * 12;
+                        const d = 12 + Math.random() * 12;
 
-                    if(Math.random() > 0.5) {
-                        const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6), darkMetalMat);
-                        ant.position.set(x - 4, h + 3, z + 2); scene.add(ant);
-                    }
+                        const bMat = buildingMats[Math.floor(Math.random() * buildingMats.length)];
+                        const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bMat);
+                        building.position.set(x, h / 2, z);
+                        building.castShadow = true; building.receiveShadow = true;
+                        scene.add(building);
 
-                    const winGeo = new THREE.PlaneGeometry(1.0, 1.8);
-                    for (let yWin = 4; yWin < h - 4; yWin += 4) {
-                        for (let offset = -w/2 + 3; offset < w/2 - 2; offset += 3) {
-                            const w1 = new THREE.Mesh(winGeo, windowMat);
-                            w1.position.set(x + offset, yWin, z + d/2 + 0.02); scene.add(w1);
-                            const w2 = new THREE.Mesh(winGeo, windowMat);
-                            w2.position.set(x + offset, yWin, z - d/2 - 0.02); w2.rotation.y = Math.PI; scene.add(w2);
+                        // Çatı Detayları
+                        const ac = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2, 2.5), metalMat);
+                        ac.position.set(x - w/4, h + 1, z - d/4); ac.castShadow = true; scene.add(ac);
+
+                        if(Math.random() > 0.4) {
+                            const tank = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 3.5), waterTankMat);
+                            tank.position.set(x + w/4, h + 1.75, z + d/4); tank.castShadow = true; scene.add(tank);
                         }
-                        for (let offset = -d/2 + 3; offset < d/2 - 2; offset += 3) {
-                            const w3 = new THREE.Mesh(winGeo, windowMat);
-                            w3.position.set(x + w/2 + 0.02, yWin, z + offset); w3.rotation.y = Math.PI / 2; scene.add(w3);
-                            const w4 = new THREE.Mesh(winGeo, windowMat);
-                            w4.position.set(x - w/2 - 0.02, yWin, z + offset); w4.rotation.y = -Math.PI / 2; scene.add(w4);
+
+                        if(Math.random() > 0.5) {
+                            const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6), darkMetalMat);
+                            ant.position.set(x, h + 3, z); scene.add(ant);
+                        }
+
+                        // Pencere Düzeni
+                        for (let yWin = 4; yWin < h - 4; yWin += 4) {
+                            for (let offset = -w/2 + 2; offset < w/2 - 1.5; offset += 3) {
+                                const w1 = new THREE.Mesh(winGeo, windowMat);
+                                w1.position.set(x + offset, yWin, z + d/2 + 0.02); scene.add(w1);
+                                const w2 = new THREE.Mesh(winGeo, windowMat);
+                                w2.position.set(x + offset, yWin, z - d/2 - 0.02); w2.rotation.y = Math.PI; scene.add(w2);
+                            }
+                            for (let offset = -d/2 + 2; offset < d/2 - 1.5; offset += 3) {
+                                const w3 = new THREE.Mesh(winGeo, windowMat);
+                                w3.position.set(x + w/2 + 0.02, yWin, z + offset); w3.rotation.y = Math.PI / 2; scene.add(w3);
+                                const w4 = new THREE.Mesh(winGeo, windowMat);
+                                w4.position.set(x - w/2 - 0.02, yWin, z + offset); w4.rotation.y = -Math.PI / 2; scene.add(w4);
+                            }
+                        }
+                    } else {
+                        // Bina olmayan boşluklara rastgele park/sokak objeleri yerleştir
+                        const emptyX = i * cellSize;
+                        const emptyZ = j * cellSize;
+
+                        if (Math.random() > 0.5) {
+                            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 4), trunkMat);
+                            trunk.position.set(emptyX, 2, emptyZ);
+                            const foliage = new THREE.Mesh(new THREE.SphereGeometry(3.5, 8, 8), foliageMat);
+                            foliage.position.set(emptyX, 5.5, emptyZ); foliage.castShadow = true;
+                            scene.add(trunk, foliage);
+                        }
+
+                        if (Math.random() > 0.6) {
+                            const hyd = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5), hydMat);
+                            hyd.position.set(emptyX + 3, 0.75, emptyZ + 2); hyd.castShadow = true; scene.add(hyd);
                         }
                     }
                 }
-            }
-
-            for (let i = -250; i <= 250; i += 12) {
-                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, 10), darkMetalMat);
-                pole.position.set(i, 5, -13); pole.castShadow = true;
-                const lightBox = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 0.8), metalMat);
-                lightBox.position.set(i, 10, -12); scene.add(pole, lightBox);
-
-                if(Math.random() > 0.6) {
-                    const hyd = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5), hydMat);
-                    hyd.position.set(i + 2, 0.75, -12.5); hyd.castShadow = true; scene.add(hyd);
-                }
-
-                if(Math.random() > 0.5) {
-                    const bin = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.4, 0.8), binMat);
-                    bin.position.set(i - 3, 0.7, -12.5); bin.castShadow = true; scene.add(bin);
-                }
-
-                if(Math.random() > 0.3) {
-                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 4), trunkMat);
-                    trunk.position.set(i, 2, 13);
-                    const foliage = new THREE.Mesh(new THREE.SphereGeometry(3, 8, 8), foliageMat);
-                    foliage.position.set(i, 5, 13); foliage.castShadow = true;
-                    scene.add(trunk, foliage);
-                }
-                
-                const curb = new THREE.Mesh(new THREE.BoxGeometry(10, 0.4, 2), groundMat);
-                curb.position.set(i, 0.2, 13.5); curb.receiveShadow = true; scene.add(curb);
             }
         }
 
