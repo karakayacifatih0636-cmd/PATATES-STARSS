@@ -50,7 +50,7 @@
         .character-select-container {
             display: flex; gap: 15px; overflow-x: auto; width: 90%; max-width: 800px; padding: 15px;
             background: rgba(0, 0, 0, 0.5); border-radius: 15px; border: 3px solid #4d94ff;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8); min-height: 140px; align-items: center; justify-content: center;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8); min-height: 140px; align-items: center; justify-content: flex-start;
         }
 
         .char-card {
@@ -156,8 +156,11 @@
 
         let selectedChar = CHARACTERS[0];
 
-        window.addEventListener('DOMContentLoaded', () => {
+        // Karakter kartlarını yükleme fonksiyonu
+        function renderCharacterCards() {
             const charContainer = document.getElementById('char-container');
+            if(!charContainer) return;
+            charContainer.innerHTML = '';
             CHARACTERS.forEach((char, index) => {
                 const card = document.createElement('div');
                 card.className = `char-card ${index === 0 ? 'selected' : ''}`;
@@ -167,4 +170,340 @@
                     selectedChar = char;
                 };
                 const icon = document.createElement('div'); icon.className = 'char-icon'; icon.style.background = char.icon;
-                const name
+                const name = document.createElement('div'); name.className = 'char-name'; name.innerText = char.name;
+                card.appendChild(icon); card.appendChild(name); charContainer.appendChild(card);
+            });
+        }
+
+        renderCharacterCards();
+
+        let scene, camera, renderer;
+        let keys = { w: false, a: false, s: false, d: false };
+        let projectiles = [];
+        let isRightMouseDown = false, isLooking = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let yaw = 0, pitch = 0;
+
+        let playerVelocityY = 0;
+        let isGrounded = true;
+        const gravity = -0.02;
+        const jumpStrength = 0.48;
+        const playerHeight = 3.5;
+        let joyX = 0, joyY = 0;
+
+        function getTerrainHeight(x, z) {
+            return Math.sin(x * 0.03) * 5 + Math.cos(z * 0.03) * 5 + Math.sin((x + z) * 0.015) * 3;
+        }
+
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x5a788a);
+            scene.fog = new THREE.FogExp2(0x5a788a, 0.004);
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const startY = getTerrainHeight(0, 0) + playerHeight;
+            camera.position.set(0, startY, 0);
+            camera.rotation.order = 'YXZ';
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            window.addEventListener('contextmenu', e => e.preventDefault());
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfff5ea, 1.2);
+            sunLight.position.set(100, 250, 100);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 500;
+            const d = 200;
+            sunLight.shadow.camera.left = -d; sunLight.shadow.camera.right = d;
+            sunLight.shadow.camera.top = d; sunLight.shadow.camera.bottom = -d;
+            sunLight.shadow.bias = -0.0002;
+            scene.add(sunLight);
+
+            createHillyCity();
+        }
+
+        function createHillyCity() {
+            const planeGeo = new THREE.PlaneGeometry(800, 800, 120, 120);
+            planeGeo.rotateX(-Math.PI / 2);
+
+            const posAttr = planeGeo.attributes.position;
+            for (let i = 0; i < posAttr.count; i++) {
+                const x = posAttr.getX(i);
+                const z = posAttr.getZ(i);
+                posAttr.setY(i, getTerrainHeight(x, z));
+            }
+            planeGeo.computeVertexNormals();
+
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.9 });
+            const ground = new THREE.Mesh(planeGeo, groundMat);
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Gerçekçi Renk Paleti (Beton, Krem, Antrasit, Tuğla, Koyu Kahve)
+            const buildingMats = [
+                new THREE.MeshStandardMaterial({ color: 0x8c8c8c, roughness: 0.7, metalness: 0.1 }),
+                new THREE.MeshStandardMaterial({ color: 0xd9d2c9, roughness: 0.8, metalness: 0.0 }),
+                new THREE.MeshStandardMaterial({ color: 0x2f353b, roughness: 0.5, metalness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0xa6523f, roughness: 0.9, metalness: 0.0 }),
+                new THREE.MeshStandardMaterial({ color: 0x4a433e, roughness: 0.8, metalness: 0.1 }),
+                new THREE.MeshStandardMaterial({ color: 0x5c6b73, roughness: 0.6, metalness: 0.2 })
+            ];
+
+            const windowMat = new THREE.MeshBasicMaterial({ color: 0xfff3a0 });
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8, roughness: 0.2 });
+            const waterTankMat = new THREE.MeshStandardMaterial({ color: 0x735238, roughness: 0.9 });
+            const hydMat = new THREE.MeshStandardMaterial({ color: 0xb30000, metalness: 0.5 });
+            const foliageMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27, roughness: 0.9 });
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x422d1d });
+
+            const winGeo = new THREE.PlaneGeometry(1.0, 1.8);
+
+            const totalGridSteps = 7;
+            const cellSize = 50;
+
+            for (let i = -totalGridSteps; i <= totalGridSteps; i++) {
+                for (let j = -totalGridSteps; j <= totalGridSteps; j++) {
+                    if (Math.abs(i) < 1 && Math.abs(j) < 1) continue;
+
+                    if (Math.random() < 0.28) {
+                        const offsetX = (Math.random() - 0.5) * 18;
+                        const offsetZ = (Math.random() - 0.5) * 18;
+
+                        const x = i * cellSize + offsetX;
+                        const z = j * cellSize + offsetZ;
+                        const groundY = getTerrainHeight(x, z);
+
+                        const h = 25 + Math.random() * 45;
+                        const w = 12 + Math.random() * 10;
+                        const d = 12 + Math.random() * 10;
+
+                        const bMat = buildingMats[Math.floor(Math.random() * buildingMats.length)];
+                        const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bMat);
+                        building.position.set(x, groundY + h / 2, z);
+                        building.castShadow = true; building.receiveShadow = true;
+                        scene.add(building);
+
+                        const ac = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2, 2.5), metalMat);
+                        ac.position.set(x - w/4, groundY + h + 1, z - d/4); ac.castShadow = true; scene.add(ac);
+
+                        if (Math.random() > 0.4) {
+                            const tank = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 3.5), waterTankMat);
+                            tank.position.set(x + w/4, groundY + h + 1.75, z + d/4); tank.castShadow = true; scene.add(tank);
+                        }
+
+                        for (let yWin = 4; yWin < h - 4; yWin += 4) {
+                            const currentWinY = groundY + yWin;
+                            for (let offset = -w/2 + 2; offset < w/2 - 1.5; offset += 3) {
+                                const w1 = new THREE.Mesh(winGeo, windowMat);
+                                w1.position.set(x + offset, currentWinY, z + d/2 + 0.02); scene.add(w1);
+                                const w2 = new THREE.Mesh(winGeo, windowMat);
+                                w2.position.set(x + offset, currentWinY, z - d/2 - 0.02); w2.rotation.y = Math.PI; scene.add(w2);
+                            }
+                            for (let offset = -d/2 + 2; offset < d/2 - 1.5; offset += 3) {
+                                const w3 = new THREE.Mesh(winGeo, windowMat);
+                                w3.position.set(x + w/2 + 0.02, currentWinY, z + offset); w3.rotation.y = Math.PI / 2; scene.add(w3);
+                                const w4 = new THREE.Mesh(winGeo, windowMat);
+                                w4.position.set(x - w/2 - 0.02, currentWinY, z + offset); w4.rotation.y = -Math.PI / 2; scene.add(w4);
+                            }
+                        }
+                    } else {
+                        const emptyX = i * cellSize + (Math.random() - 0.5) * 15;
+                        const emptyZ = j * cellSize + (Math.random() - 0.5) * 15;
+                        const emptyY = getTerrainHeight(emptyX, emptyZ);
+
+                        if (Math.random() > 0.4) {
+                            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 4), trunkMat);
+                            trunk.position.set(emptyX, emptyY + 2, emptyZ);
+                            const foliage = new THREE.Mesh(new THREE.SphereGeometry(3.5, 8, 8), foliageMat);
+                            foliage.position.set(emptyX, emptyY + 5.5, emptyZ); foliage.castShadow = true;
+                            scene.add(trunk, foliage);
+                        }
+
+                        if (Math.random() > 0.75) {
+                            const hyd = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5), hydMat);
+                            hyd.position.set(emptyX + 2, emptyY + 0.75, emptyZ + 1); hyd.castShadow = true; scene.add(hyd);
+                        }
+                    }
+                }
+            }
+        }
+
+        function jump() {
+            if (isGrounded) {
+                playerVelocityY = jumpStrength;
+                isGrounded = false;
+                const btn = document.getElementById('btn-jump-mobile');
+                btn.style.transform = 'scale(0.9)'; setTimeout(() => btn.style.transform = 'none', 100);
+            }
+        }
+
+        function setupControls() {
+            window.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                if (key === 'w') keys.w = true; if (key === 's') keys.s = true;
+                if (key === 'a') keys.a = true; if (key === 'd') keys.d = true;
+                if (key === 'e') shootElement();
+                if (e.code === 'Space') jump();
+            });
+            window.addEventListener('keyup', (e) => {
+                const key = e.key.toLowerCase();
+                if (key === 'w') keys.w = false; if (key === 's') keys.s = false;
+                if (key === 'a') keys.a = false; if (key === 'd') keys.d = false;
+            });
+
+            window.addEventListener('mousedown', (e) => {
+                if (e.button === 2) { isRightMouseDown = true; previousMousePosition = { x: e.clientX, y: e.clientY }; }
+            });
+            window.addEventListener('mouseup', (e) => { if (e.button === 2) isRightMouseDown = false; });
+            window.addEventListener('mousemove', (e) => {
+                if (!isRightMouseDown) return;
+                const deltaX = e.clientX - previousMousePosition.x; const deltaY = e.clientY - previousMousePosition.y;
+                yaw -= deltaX * 0.003; pitch -= deltaY * 0.003;
+                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+                camera.rotation.y = yaw; camera.rotation.x = pitch;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            const joyZone = document.getElementById('joystick-zone');
+            const joyKnob = document.getElementById('joystick-knob');
+            let joyActive = false; let joyCenter = { x: 0, y: 0 };
+            const maxJoyRadius = 50;
+
+            function handleJoyStart(e) {
+                e.preventDefault(); joyActive = true;
+                const rect = joyZone.getBoundingClientRect();
+                joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                updateJoystick(e.touches ? e.touches[0] : e);
+            }
+            function handleJoyMove(e) {
+                if (!joyActive) return; e.preventDefault();
+                updateJoystick(e.touches ? e.touches[0] : e);
+            }
+            function handleJoyEnd(e) {
+                e.preventDefault(); joyActive = false;
+                joyKnob.style.transform = `translate(-50%, -50%)`; joyX = 0; joyY = 0;
+            }
+            function updateJoystick(input) {
+                let dx = input.clientX - joyCenter.x; let dy = input.clientY - joyCenter.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > maxJoyRadius) { dx = (dx / distance) * maxJoyRadius; dy = (dy / distance) * maxJoyRadius; }
+                joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                joyX = dx / maxJoyRadius; joyY = dy / maxJoyRadius;
+            }
+
+            joyZone.addEventListener('touchstart', handleJoyStart); joyZone.addEventListener('touchmove', handleJoyMove); joyZone.addEventListener('touchend', handleJoyEnd);
+            joyZone.addEventListener('mousedown', handleJoyStart); window.addEventListener('mousemove', handleJoyMove); window.addEventListener('mouseup', handleJoyEnd);
+
+            const shootBtn = document.getElementById('btn-shoot-mobile');
+            shootBtn.addEventListener('touchstart', (e) => { e.preventDefault(); shootElement(); shootBtn.style.transform = 'scale(0.9)'; setTimeout(() => shootBtn.style.transform = 'none', 100);});
+            shootBtn.addEventListener('click', () => shootElement());
+            const jumpBtn = document.getElementById('btn-jump-mobile');
+            jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
+            jumpBtn.addEventListener('click', () => jump());
+
+            let touchStartX = 0, touchStartY = 0; let activeLookTouchId = null;
+            window.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.touch-btn') || e.target.closest('#joystick-zone')) return;
+                for(let i=0; i<e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    if (touch.clientX > window.innerWidth / 2) { isLooking = true; activeLookTouchId = touch.identifier; touchStartX = touch.clientX; touchStartY = touch.clientY; }
+                }
+            });
+            window.addEventListener('touchmove', (e) => {
+                if (!isLooking) return;
+                for(let i=0; i<e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    if (touch.identifier === activeLookTouchId) {
+                        const deltaX = touch.clientX - touchStartX; const deltaY = touch.clientY - touchStartY;
+                        yaw -= deltaX * 0.005; pitch -= deltaY * 0.005;
+                        pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+                        camera.rotation.y = yaw; camera.rotation.x = pitch;
+                        touchStartX = touch.clientX; touchStartY = touch.clientY;
+                    }
+                }
+            });
+            window.addEventListener('touchend', (e) => {
+                for(let i=0; i<e.changedTouches.length; i++) { if (e.changedTouches[i].identifier === activeLookTouchId) { isLooking = false; activeLookTouchId = null; } }
+            });
+        }
+
+        function shootElement() {
+            const projGeo = new THREE.SphereGeometry(1.4, 32, 32);
+            const projMat = new THREE.MeshStandardMaterial({ 
+                color: selectedChar.color, emissive: selectedChar.color, emissiveIntensity: 1.2, metalness: 0.5, roughness: 0.1 
+            });
+            const proj = new THREE.Mesh(projGeo, projMat);
+            const light = new THREE.PointLight(selectedChar.color, 4, 25);
+            proj.add(light);
+            proj.position.copy(camera.position);
+
+            const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+            proj.userData = { velocity: dir.multiplyScalar(3.5) };
+            scene.add(proj); projectiles.push(proj);
+        }
+
+        function startGame() {
+            document.getElementById('menu-overlay').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
+            initScene(); setupControls(); animate();
+        }
+
+        document.getElementById('btn-start').addEventListener('click', startGame);
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            let moveX = joyX; let moveZ = joyY;
+            if (keys.w) moveZ = -1; if (keys.s) moveZ = 1;
+            if (keys.a) moveX = -1; if (keys.d) moveX = 1;
+
+            const moveVector = new THREE.Vector2(moveX, moveZ);
+            if (moveVector.length() > 1) moveVector.normalize();
+
+            const moveSpeed = 0.5;
+            const forward = new THREE.Vector3(); camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
+            const side = new THREE.Vector3(); side.crossVectors(camera.up, forward).negate();
+
+            if (moveVector.length() > 0.05) {
+                camera.position.addScaledVector(forward, -moveVector.y * moveSpeed);
+                camera.position.addScaledVector(side, moveVector.x * moveSpeed);
+            }
+
+            const currentGroundHeight = getTerrainHeight(camera.position.x, camera.position.z);
+            const minAllowedY = currentGroundHeight + playerHeight;
+
+            camera.position.y += playerVelocityY;
+            playerVelocityY += gravity;
+
+            if (camera.position.y <= minAllowedY) { 
+                camera.position.y = minAllowedY; 
+                playerVelocityY = 0; 
+                isGrounded = true; 
+            }
+
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i]; p.position.add(p.userData.velocity);
+                if (p.position.distanceTo(camera.position) > 350) { scene.remove(p); projectiles.splice(i, 1); }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+    </script>
+</body>
+</html>
