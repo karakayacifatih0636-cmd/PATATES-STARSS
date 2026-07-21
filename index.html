@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Element Savaşları - Brawl Edition</title>
+    <title>Element Savaşları - PC & Mobil</title>
     <style>
         * {
             box-sizing: border-box;
@@ -16,10 +16,10 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: 'Fredoka One', 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* --- BRAWL STARS TARZI NEŞELİ MENÜ --- */
+        /* --- MENÜ EKRANI --- */
         #menu-overlay {
             position: absolute;
             top: 0;
@@ -102,7 +102,6 @@
             box-shadow: 0 8px 0px #cc7a00, 0 15px 20px rgba(0,0,0,0.3);
             cursor: pointer;
             margin-bottom: 30px;
-            transition: active 0.1s;
         }
 
         .btn-play:active {
@@ -110,7 +109,7 @@
             box-shadow: 0 4px 0px #cc7a00;
         }
 
-        /* --- OYUN İÇİ MOBİL KONTROLLER --- */
+        /* --- OYUN İÇİ ARAYÜZ --- */
         #game-ui {
             display: none;
             position: absolute;
@@ -133,68 +132,16 @@
             transform: translate(-50%, -50%);
         }
 
-        /* Touch / Dokunmatik Butonlar */
-        .touch-btn {
+        #controls-info {
             position: absolute;
-            background: rgba(255, 255, 255, 0.3);
-            border: 3px solid rgba(255, 255, 255, 0.7);
-            border-radius: 50%;
-            pointer-events: auto;
-            backdrop-filter: blur(4px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            top: 20px;
+            left: 20px;
             color: white;
-            font-weight: bold;
-            font-size: 18px;
-            text-shadow: 1px 1px 2px #000;
-            touch-action: manipulation;
-        }
-
-        #btn-shoot {
-            bottom: 40px;
-            right: 40px;
-            width: 80px;
-            height: 80px;
-            background: rgba(255, 50, 50, 0.6);
-            border-color: #ff4d4d;
-        }
-
-        #btn-up {
-            bottom: 130px;
-            right: 40px;
-            width: 60px;
-            height: 60px;
-        }
-
-        #btn-down {
-            bottom: 40px;
-            right: 130px;
-            width: 60px;
-            height: 60px;
-        }
-
-        /* Sanal Joystick Alanı */
-        #joystick-zone {
-            position: absolute;
-            bottom: 40px;
-            left: 40px;
-            width: 120px;
-            height: 120px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px dashed rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            pointer-events: auto;
-        }
-
-        #joystick-knob {
-            position: absolute;
-            top: 35px;
-            left: 35px;
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -204,30 +151,28 @@
     <div id="menu-overlay">
         <div class="menu-title">ELEMENT SAVAŞLARI</div>
         
-        <div class="character-select-container" id="char-container">
-            </div>
+        <div class="character-select-container" id="char-container"></div>
 
         <button class="btn-play" onclick="startGame()">OYNA</button>
     </div>
 
     <div id="game-ui">
         <div class="crosshair"></div>
-        <div id="joystick-zone">
-            <div id="joystick-knob"></div>
+        <div id="controls-info">
+            <b>Bilgisayar Kontrolleri:</b><br>
+            • <b>W, A, S, D:</b> Hareket Et<br>
+            • <b>Sağ Tık + Sürükle:</b> Etrafa Bak<br>
+            • <b>E Tuşu:</b> Ateş Et
         </div>
-        <div class="touch-btn" id="btn-up">YÜKSEL</div>
-        <div class="touch-btn" id="btn-down">ALÇAL</div>
-        <div class="touch-btn" id="btn-shoot">ATEŞ</div>
     </div>
 
     <script>
-        // --- 10 KARAKTER VE ELEMENT LİSTESİ ---
+        // --- KARAKTER VE ELEMENT LİSTESİ ---
         const CHARACTERS = [
             { name: "Ateş", color: 0xff3300, icon: "#ff3300" },
             { name: "Su", color: 0x0099ff, icon: "#0099ff" },
             { name: "Hava", color: 0x99ffff, icon: "#99ffff" },
             { name: "Toprak", color: 0x8b5a2b, icon: "#8b5a2b" },
-            // Ek 6 Mantıklı Karakter/Element
             { name: "Şimşek", color: 0xffff00, icon: "#ffff00" },
             { name: "Buz", color: 0x00ffff, icon: "#00ffff" },
             { name: "Gölge", color: 0x4b0082, icon: "#4b0082" },
@@ -262,24 +207,30 @@
             charContainer.appendChild(card);
         });
 
-        // --- SAHNE, KAMERA VE RENDERER ---
+        // --- SAHNE, KAMERA VE DEĞİŞKENLER ---
         let scene, camera, renderer;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let moveUp = false, moveDown = false;
+        let keys = { w: false, a: false, s: false, d: false };
         let projectiles = [];
+        let isRightMouseDown = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let yaw = 0, pitch = 0; // Kamera açıları
 
         function initScene() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb); // Neşeli Gökyüzü Mavisi
+            scene.background = new THREE.Color(0x87ceeb);
             scene.fog = new THREE.FogExp2(0x87ceeb, 0.003);
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 0); // Karakterin göz seviyesi
+            camera.position.set(0, 2, 0); // İnsan göz seviyesi (Yükseklik: 2 birim)
+            camera.rotation.order = 'YXZ';
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
+
+            // Sağ Tık Menüsünü Engelle (Kamera döndürme kolaylığı için)
+            window.addEventListener('contextmenu', e => e.preventDefault());
 
             // Işıklar
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -290,12 +241,11 @@
             sunLight.castShadow = true;
             scene.add(sunLight);
 
-            // Gerçekçi Şehir & Zemin
             createCity();
             createNPCs();
         }
 
-        // --- DETAYLI ŞEHİR ÜRETİMİ ---
+        // --- ŞEHİR VE SOKAK DETAYLARI ---
         function createCity() {
             // Zemin
             const ground = new THREE.Mesh(
@@ -305,13 +255,12 @@
             ground.rotation.x = -Math.PI / 2;
             scene.add(ground);
 
-            // Yollar ve Binalar
             const bMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2 });
             const windowMat = new THREE.MeshBasicMaterial({ color: 0xffff99 });
 
             for (let x = -200; x <= 200; x += 40) {
                 for (let z = -200; z <= 200; z += 40) {
-                    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue; // Doğma alanı boş kalsın
+                    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue;
 
                     const h = 20 + Math.random() * 60;
                     const building = new THREE.Mesh(new THREE.BoxGeometry(25, h, 25), bMat);
@@ -320,7 +269,6 @@
                     building.receiveShadow = true;
                     scene.add(building);
 
-                    // Pencereler (Gerçekçilik için)
                     for(let y = 5; y < h - 5; y += 8) {
                         const win = new THREE.Mesh(new THREE.PlaneGeometry(20, 3), windowMat);
                         win.position.set(x, y, z + 12.6);
@@ -330,7 +278,6 @@
             }
         }
 
-        // --- NPC / DİĞER KARAKTERLER ---
         function createNPCs() {
             const npcMat = new THREE.MeshStandardMaterial({ color: 0xff0055 });
             for(let i = 0; i < 15; i++) {
@@ -340,42 +287,64 @@
             }
         }
 
-        // --- KONTROLLER (DOKUNMATİK & KLAVYE) ---
-        let touchStartX = 0, touchStartY = 0;
+        // --- KLAVYE VE FARE KONTROLLERİ ---
+        function setupPCControls() {
+            // Tuş Basmaları
+            window.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                if (key === 'w') keys.w = true;
+                if (key === 's') keys.s = true;
+                if (key === 'a') keys.a = true;
+                if (key === 'd') keys.d = true;
 
-        function setupControls() {
-            // Bakış Yönü Değiştirme (Dokunup Sürükleme)
-            window.addEventListener('touchstart', (e) => {
-                if(e.touches[0].clientX > window.innerWidth / 2) {
-                    touchStartX = e.touches[0].clientX;
-                    touchStartY = e.touches[0].clientY;
+                // E Tuşu ile Ateş Etme
+                if (key === 'e') {
+                    shootElement();
                 }
             });
 
-            window.addEventListener('touchmove', (e) => {
-                if(e.touches[0].clientX > window.innerWidth / 2) {
-                    const deltaX = e.touches[0].clientX - touchStartX;
-                    const deltaY = e.touches[0].clientY - touchStartY;
+            window.addEventListener('keyup', (e) => {
+                const key = e.key.toLowerCase();
+                if (key === 'w') keys.w = false;
+                if (key === 's') keys.s = false;
+                if (key === 'a') keys.a = false;
+                if (key === 'd') keys.d = false;
+            });
 
-                    camera.rotation.y -= deltaX * 0.005;
-                    camera.rotation.x -= deltaY * 0.005;
-
-                    touchStartX = e.touches[0].clientX;
-                    touchStartY = e.touches[0].clientY;
+            // Sağ Tık ile Kamerayı Çevirme
+            window.addEventListener('mousedown', (e) => {
+                if (e.button === 2) { // 2 = Sağ Tık
+                    isRightMouseDown = true;
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
                 }
             });
 
-            // Buton Etkileşimleri
-            document.getElementById('btn-up').ontouchstart = () => moveUp = true;
-            document.getElementById('btn-up').ontouchend = () => moveUp = false;
-            
-            document.getElementById('btn-down').ontouchstart = () => moveDown = true;
-            document.getElementById('btn-down').ontouchend = () => moveDown = false;
+            window.addEventListener('mouseup', (e) => {
+                if (e.button === 2) {
+                    isRightMouseDown = false;
+                }
+            });
 
-            document.getElementById('btn-shoot').ontouchstart = shootElement;
+            window.addEventListener('mousemove', (e) => {
+                if (!isRightMouseDown) return;
+
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                yaw -= deltaX * 0.003;
+                pitch -= deltaY * 0.003;
+
+                // Yukarı/aşağı bakışı sınırla
+                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+
+                camera.rotation.y = yaw;
+                camera.rotation.x = pitch;
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
         }
 
-        // Element Ateşleme
+        // Ateş Etme Mekaniği
         function shootElement() {
             const projGeo = new THREE.SphereGeometry(1.2, 16, 16);
             const projMat = new THREE.MeshBasicMaterial({ color: selectedChar.color });
@@ -397,7 +366,7 @@
             document.getElementById('game-ui').style.display = 'block';
 
             initScene();
-            setupControls();
+            setupPCControls();
             animate();
         }
 
@@ -405,11 +374,25 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Uçma / Dikey Hareket
-            if (moveUp) camera.position.y += 0.5;
-            if (moveDown && camera.position.y > 2) camera.position.y -= 0.5;
+            // WASD Hareket Mantığı
+            const moveSpeed = 0.4;
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            forward.y = 0; // Yüksekliği sıfırla (Uçmayı engeller)
+            forward.normalize();
 
-            // Mermi / Element Hareketleri
+            const side = new THREE.Vector3();
+            side.crossVectors(camera.up, forward).negate();
+
+            if (keys.w) camera.position.addScaledVector(forward, moveSpeed);
+            if (keys.s) camera.position.addScaledVector(forward, -moveSpeed);
+            if (keys.d) camera.position.addScaledVector(side, moveSpeed);
+            if (keys.a) camera.position.addScaledVector(side, -moveSpeed);
+
+            // Karakter Yüksekliğini Sabit Tut (Yürüme Mesafesi)
+            camera.position.y = 2;
+
+            // Element Mermilerini Hareket Ettir
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const p = projectiles[i];
                 p.position.add(p.userData.velocity);
@@ -423,7 +406,7 @@
             renderer.render(scene, camera);
         }
 
-        // Ekran Boyutu Değişimi
+        // Yeniden Boyutlandırma
         window.addEventListener('resize', () => {
             if(camera && renderer) {
                 camera.aspect = window.innerWidth / window.innerHeight;
