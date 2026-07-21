@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Element Savaşları 3D - Şehir Haritası</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #ui {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .element-btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .element-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+        }
+        .element-btn:active {
+            transform: translateY(0);
+        }
+        #btn-fire { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+        #btn-water { background: linear-gradient(135deg, #1e3c72, #2a5298); }
+        #btn-air { background: linear-gradient(135deg, #799f0c, #acbb78); }
+        #btn-earth { background: linear-gradient(135deg, #bf8d3c, #83541e); }
+        
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            pointer-events: none;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="info">
+        <h3>Element Savaşları</h3>
+        <p>Sol Tık + Sürükle: Kamerayı Döndür | Fare Tekerleği: Yakınlaş</p>
+        <p>Seçili Element: <span id="current-element" style="color: #ff4b2b; font-weight: bold;">Ateş</span></p>
+    </div>
+
+    <div id="ui">
+        <button class="element-btn" id="btn-fire" onclick="selectElement('Ateş', 0xff4500)">1. Ateş</button>
+        <button class="element-btn" id="btn-water" onclick="selectElement('Su', 0x1e90ff)">2. Su</button>
+        <button class="element-btn" id="btn-air" onclick="selectElement('Hava', 0x87ceeb)">3. Hava</button>
+        <button class="element-btn" id="btn-earth" onclick="selectElement('Toprak', 0x8b4513)">4. Toprak</button>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- SAHNE VE KAMERA KURULUMU ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        scene.fog = new THREE.FogExp2(0x1a1a2e, 0.005);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(100, 80, 120);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Yerin altına girmeyi engeller
+
+        // --- IŞIKLANDIRMA ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(100, 150, 50);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 500;
+        const d = 150;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        scene.add(dirLight);
+
+        // --- ZEMİN VE YOLLAR ---
+        const groundGeo = new THREE.PlaneGeometry(300, 300);
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Grid Yollar
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+        for(let i = -120; i <= 120; i += 40) {
+            // Dikey Yollar
+            const roadV = new THREE.Mesh(new THREE.PlaneGeometry(12, 300), roadMat);
+            roadV.rotation.x = -Math.PI / 2;
+            roadV.position.set(i, 0.01, 0);
+            roadV.receiveShadow = true;
+            scene.add(roadV);
+
+            // Yatay Yollar
+            const roadH = new THREE.Mesh(new THREE.PlaneGeometry(300, 12), roadMat);
+            roadH.rotation.x = -Math.PI / 2;
+            roadH.position.set(0, 0.01, i);
+            roadH.receiveShadow = true;
+            scene.add(roadH);
+        }
+
+        // --- DETAYLI ŞEHİR ÜRETİMİ (400+ Detay Elemanı) ---
+        let totalDetails = 0;
+
+        // Materyal Havuzu
+        const buildingMaterials = [
+            new THREE.MeshStandardMaterial({ color: 0x3a405a, roughness: 0.2 }),
+            new THREE.MeshStandardMaterial({ color: 0x685044, roughness: 0.5 }),
+            new THREE.MeshStandardMaterial({ color: 0x455a64, roughness: 0.3 }),
+            new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.4 })
+        ];
+        const windowMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b });
+        const propMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+        const foliageMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32 });
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4e342e });
+
+        // Binalar ve Çatı Detayları
+        for (let x = -100; x <= 100; x += 40) {
+            for (let z = -100; z <= 100; z += 40) {
+                // Yolların üzerine bina dikme
+                if (Math.abs(x) === 0 || Math.abs(z) === 0) continue;
+
+                // Blok içi rastgele bina konumlandırma
+                const buildingCount = 2; 
+                for(let b = 0; b < buildingCount; b++) {
+                    const h = 15 + Math.random() * 35;
+                    const w = 10 + Math.random() * 8;
+                    const d = 10 + Math.random() * 8;
+                    const offsetX = (Math.random() - 0.5) * 15;
+                    const offsetZ = (Math.random() - 0.5) * 15;
+
+                    const bMat = buildingMaterials[Math.floor(Math.random() * buildingMaterials.length)];
+                    const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bMat);
+                    building.position.set(x + offsetX, h / 2, z + offsetZ);
+                    building.castShadow = true;
+                    building.receiveShadow = true;
+                    scene.add(building);
+                    totalDetails++;
+
+                    // Çatı Detayı: Havalandırma/Klima Üniteleri
+                    const acGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                    const ac = new THREE.Mesh(acGeo, propMat);
+                    ac.position.set(x + offsetX + 1, h + 0.75, z + offsetZ + 1);
+                    scene.add(ac);
+                    totalDetails++;
+
+                    // Pencere Detayları
+                    for (let yWin = 3; yWin < h - 2; yWin += 4) {
+                        const winGeo = new THREE.PlaneGeometry(0.8, 1.2);
+                        const win = new THREE.Mesh(winGeo, windowMat);
+                        win.position.set(x + offsetX, yWin, z + offsetZ + d/2 + 0.01);
+                        scene.add(win);
+                        totalDetails++;
+                    }
+                }
+            }
+        }
+
+        // Sokak Lambaları, Ağaçlar ve Çöp Kutuları (Kaldırımlar boyunca)
+        for (let i = -130; i <= 130; i += 15) {
+            if (i % 40 === 0) continue; // Kavşaklara denk getirme
+
+            // Sokak Lambaları
+            const createLamp = (lx, lz) => {
+                const group = new THREE.Group();
+                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 6), propMat);
+                pole.position.y = 3;
+                const lightBulb = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshBasicMaterial({color: 0xffffee}));
+                lightBulb.position.set(0, 6, 0.5);
+                group.add(pole, lightBulb);
+                group.position.set(lx, 0, lz);
+                scene.add(group);
+                totalDetails += 2;
+            };
+
+            createLamp(i, -6);
+            createLamp(i, 6);
+
+            // Ağaçlar
+            const createTree = (tx, tz) => {
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2), trunkMat);
+                trunk.position.set(tx, 1, tz);
+                const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(2), foliageMat);
+                foliage.position.set(tx, 3, tz);
+                foliage.castShadow = true;
+                scene.add(trunk, foliage);
+                totalDetails += 2;
+            };
+
+            if (Math.random() > 0.3) createTree(i, -8);
+            if (Math.random() > 0.3) createTree(i, 8);
+        }
+
+        console.log("Şehirdeki Toplam Oluşturulan Detay Sayısı: ~" + totalDetails);
+
+        // --- ELEMENT SİSTEMİ VE ETKİLEŞİM ---
+        let currentElementColor = 0xff4500;
+        let projectiles = [];
+
+        function selectElement(name, color) {
+            currentElementColor = color;
+            document.getElementById('current-element').innerText = name;
+            document.getElementById('current-element').style.color = '#' + color.toString(16);
+        }
+
+        // Tıklama ile Element Büyüsü/Ateşi Fırlatma
+        window.addEventListener('click', (e) => {
+            // UI üzerine tıklandıysa ateş etme
+            if (e.target.tagName === 'BUTTON' || e.target.closest('#ui') || e.target.closest('#info')) return;
+
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2(
+                (e.clientX / window.innerWidth) * 2 - 1,
+                -(e.clientY / window.innerHeight) * 2 + 1
+            );
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Fırlatılan Element Objesi
+            const projGeo = new THREE.SphereGeometry(1.5, 16, 16);
+            const projMat = new THREE.MeshBasicMaterial({ color: currentElementColor });
+            const projectile = new THREE.Mesh(projGeo, projMat);
+
+            // Başlangıç Pozisyonu (Kamera Önü)
+            projectile.position.copy(camera.position);
+
+            // Hedef Yönü
+            const targetVec = raycaster.ray.direction.clone().multiplyScalar(2);
+            projectile.userData = { velocity: targetVec, life: 0 };
+
+            scene.add(projectile);
+            projectiles.push(projectile);
+        });
+
+        // --- ANIMASYON VE RENDER DÖNGÜSÜ ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Mermileri/Elementleri Hareket Ettir
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+                p.position.add(p.userData.velocity);
+                p.userData.life++;
+
+                // 100 kare sonra yok et (Bellek temizliği)
+                if (p.userData.life > 100) {
+                    scene.remove(p);
+                    projectiles.splice(i, 1);
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Pencere Boyutu Değişimi
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
