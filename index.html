@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Element Savaşları - Ultra Detaylı Gündüz Şehri</title>
+    <title>Fok Savaşları - Gelişmiş Şehir & Elementler</title>
     <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
     <style>
         * {
@@ -102,7 +102,7 @@
 
         #blind-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: black; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999;
+            background: white; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999;
         }
 
         /* --- HASAR YAZILARI & CAN BARLARI --- */
@@ -180,7 +180,7 @@
         <div class="touch-btn" id="btn-q-mobile">ÖZEL Q</div>
         <div class="touch-btn" id="btn-r-mobile">ÖZEL R</div>
         <div class="touch-btn" id="btn-punch-mobile">YUMRUK<br>(F)</div>
-        <div class="touch-btn" id="btn-shoot-mobile">ATEŞ</div>
+        <div class="touch-btn" id="btn-shoot-mobile">ATEŞ<br>(E)</div>
         <div class="touch-btn" id="btn-jump-mobile">ZIPLA</div>
     </div>
 
@@ -206,7 +206,7 @@
         let isBlinded = false, blindEndTime = 0;
 
         let scene, camera, renderer;
-        let keys = { w: false, a: false, s: false, d: false, q: false, r: false, f: false };
+        let keys = { w: false, a: false, s: false, d: false, q: false, r: false, f: false, e: false };
         let projectiles = [], cityObjects = [], collidableBoxes = [];
         let npcs = [];
         let cooldowns = { q: 0, r: 0 };
@@ -214,6 +214,10 @@
         let fistMesh;
         let isPunching = false, punchProgress = 0;
         let shadowTeleportRing = null;
+
+        // Işık Lazeri
+        let isLightLaserActive = false;
+        let lightLaserMesh = null;
 
         let yaw = 0, pitch = 0;
         let playerVelocityY = 0, isGrounded = true;
@@ -274,7 +278,6 @@
             }
 
             scene = new THREE.Scene();
-            // GÜNDÜZ GÖKYÜZÜ VE SİS
             scene.background = new THREE.Color(0x87ceeb);
             scene.fog = new THREE.FogExp2(0x87ceeb, 0.0015);
 
@@ -288,15 +291,12 @@
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
 
-            // GÜNDÜZ GÜNEŞ IŞIĞI VE PARLAK AYDINLATMA
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); 
             scene.add(ambientLight);
 
             const sunLight = new THREE.DirectionalLight(0xfff5ea, 1.4); 
             sunLight.position.set(200, 400, 150);
             sunLight.castShadow = true; 
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
             scene.add(sunLight);
 
             const fistGeo = new THREE.BoxGeometry(0.3, 0.3, 0.8);
@@ -306,12 +306,20 @@
             camera.add(fistMesh);
             scene.add(camera);
 
+            // Gölge Işınlanma Halka Efekti
             const ringGeo = new THREE.RingGeometry(1.5, 2, 32);
             const ringMat = new THREE.MeshBasicMaterial({ color: 0x8800ff, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
             shadowTeleportRing = new THREE.Mesh(ringGeo, ringMat);
             shadowTeleportRing.rotation.x = -Math.PI / 2;
             shadowTeleportRing.visible = false;
             scene.add(shadowTeleportRing);
+
+            // Işık Lazeri
+            const laserGeo = new THREE.CylinderGeometry(0.2, 0.2, 100, 16);
+            const laserMat = new THREE.MeshBasicMaterial({ color: 0xffffaa, transparent: true, opacity: 0.9 });
+            lightLaserMesh = new THREE.Mesh(laserGeo, laserMat);
+            lightLaserMesh.visible = false;
+            scene.add(lightLaserMesh);
 
             createUltraDetailedDayCity();
             spawn20SmartNPCs();
@@ -334,11 +342,10 @@
             return false;
         }
 
-        /* --- GELİŞTİRİLMİŞ 400+ DETAYLI GÜNDÜZ ŞEHRİ --- */
+        /* --- DETAYLI GÜNDÜZ ŞEHRİ --- */
         function createUltraDetailedDayCity() {
             collidableBoxes = []; cityObjects = [];
 
-            // 1. ZEMİN VE KALDIRIMLAR
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.8 });
             const ground = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), groundMat);
             ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
@@ -346,64 +353,36 @@
 
             const roadMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.5 });
             const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-            const zebraMat = new THREE.MeshBasicMaterial({ color: 0xf0f0f0 });
             const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x99a3a4, roughness: 0.6 });
             const grassMat = new THREE.MeshStandardMaterial({ color: 0x4caf50, roughness: 0.9 });
 
-            // Ana Bulvarlar, Yollar ve Yaya Geçitleri
             for (let r = -300; r <= 300; r += 120) {
-                // X & Z Yılları
                 const roadX = new THREE.Mesh(new THREE.PlaneGeometry(1200, 20), roadMat);
                 roadX.rotation.x = -Math.PI / 2; roadX.position.set(0, 0.05, r); scene.add(roadX);
 
                 const roadZ = new THREE.Mesh(new THREE.PlaneGeometry(20, 1200), roadMat);
                 roadZ.rotation.x = -Math.PI / 2; roadZ.position.set(r, 0.05, 0); scene.add(roadZ);
 
-                // Kaldırımlar
                 const sideX1 = new THREE.Mesh(new THREE.BoxGeometry(1200, 0.4, 4), sidewalkMat);
                 sideX1.position.set(0, 0.2, r + 12); scene.add(sideX1);
                 const sideX2 = new THREE.Mesh(new THREE.BoxGeometry(1200, 0.4, 4), sidewalkMat);
                 sideX2.position.set(0, 0.2, r - 12); scene.add(sideX2);
-
-                // Yol Çizgileri & Yaya Geçitleri (Zebra)
-                for(let l = -550; l <= 550; l += 35) {
-                    const lineX = new THREE.Mesh(new THREE.PlaneGeometry(12, 1), lineMat);
-                    lineX.rotation.x = -Math.PI / 2; lineX.position.set(l, 0.08, r); scene.add(lineX);
-
-                    const lineZ = new THREE.Mesh(new THREE.PlaneGeometry(1, 12), lineMat);
-                    lineZ.rotation.x = -Math.PI / 2; lineZ.position.set(r, 0.08, l); scene.add(lineZ);
-
-                    // Yaya Geçitleri
-                    if (Math.abs(l % 120) === 0) {
-                        for(let z = -8; z <= 8; z += 3) {
-                            const zebra = new THREE.Mesh(new THREE.PlaneGeometry(8, 1.5), zebraMat);
-                            zebra.rotation.x = -Math.PI / 2; zebra.position.set(l + 18, 0.09, r + z); scene.add(zebra);
-                        }
-                    }
-                }
             }
 
-            // ŞEHİR PARKI (AÇIK YEŞİL ALAN)
             const parkArea = new THREE.Mesh(new THREE.BoxGeometry(90, 0.3, 90), grassMat);
             parkArea.position.set(0, 0.15, 0); scene.add(parkArea);
 
-            // BİNALAR VE MİMARİ
             const bMaterials = [
                 new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.3 }),
                 new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 0.2 }),
-                new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.4 }),
-                new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.3 }),
-                new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.2 })
+                new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.4 })
             ];
             const glassMat = new THREE.MeshStandardMaterial({ color: 0x81d4fa, roughness: 0.1, metalness: 0.8 });
-            const roofMat = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.5 });
-            const carColors = [0xe53935, 0x1e88e5, 0x43a047, 0xfdd835, 0x8e24aa, 0xd81b60];
 
-            // 2. GÖKDELENLER & DETAYLI ÇATILAR
             const gridSpacing = 70;
             for (let bx = -260; bx <= 260; bx += gridSpacing) {
                 for (let bz = -260; bz <= 260; bz += gridSpacing) {
-                    if (Math.abs(bx) < 45 && Math.abs(bz) < 45) continue; // Merkez Parkı Boş Bırak
+                    if (Math.abs(bx) < 45 && Math.abs(bz) < 45) continue;
 
                     const bh = 30 + Math.random() * 65;
                     const bw = 26, bd = 26;
@@ -414,87 +393,42 @@
                     building.castShadow = true; building.receiveShadow = true;
                     scene.add(building); cityObjects.push(building);
                     collidableBoxes.push(new THREE.Box3().setFromObject(building));
-
-                    // Cam Cepheler (Gündüz Yansımaları)
-                    for (let wh = 5; wh < bh - 4; wh += 7) {
-                        const winFront = new THREE.Mesh(new THREE.PlaneGeometry(bw - 4, 3), glassMat);
-                        winFront.position.set(bx, wh, bz + bd / 2 + 0.1); scene.add(winFront);
-                        const winBack = winFront.clone(); winBack.position.set(bx, wh, bz - bd / 2 - 0.1); winBack.rotation.y = Math.PI; scene.add(winBack);
-                    }
-
-                    // Çatı Detayları (Klima Santralleri, Telsiz Kuleleri, Su Depoları)
-                    const acUnit = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 5), roofMat);
-                    acUnit.position.set(bx + 5, bh + 2, bz + 5); scene.add(acUnit);
-
-                    const waterTank = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 5, 12), new THREE.MeshStandardMaterial({ color: 0x8d6e63 }));
-                    waterTank.position.set(bx - 6, bh + 2.5, bz + 4); scene.add(waterTank);
-
-                    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.4, 15, 8), roofMat);
-                    antenna.position.set(bx - 5, bh + 7.5, bz - 5); scene.add(antenna);
-                }
-            }
-
-            // 3. PARK ETMİŞ ARABALAR, SOKAK DİREKLERİ, AĞAÇLAR & BANKLAR
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037 });
-            const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32 });
-            const benchMat = new THREE.MeshStandardMaterial({ color: 0x795548 });
-            const poleMat = new THREE.MeshStandardMaterial({ color: 0x37474f });
-
-            for (let x = -280; x <= 280; x += 35) {
-                for (let z = -280; z <= 280; z += 35) {
-                    if (Math.abs(x) < 40 && Math.abs(z) < 40) {
-                        // Merkez Park Ağaçları ve Bankları
-                        if (Math.random() > 0.4) {
-                            const pTree = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 6, 8), trunkMat);
-                            pTree.position.set(x, 3, z); scene.add(pTree);
-                            const pLeaves = new THREE.Mesh(new THREE.SphereGeometry(4, 12, 12), leafMat);
-                            pLeaves.position.set(x, 8, z); scene.add(pLeaves);
-                            collidableBoxes.push(new THREE.Box3().setFromObject(pTree));
-                        }
-                        continue;
-                    }
-
-                    // Sokak Aydınlatma Direkleri
-                    if (Math.random() > 0.5) {
-                        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 9, 8), poleMat);
-                        pole.position.set(x + 12, 4.5, z + 12); scene.add(pole);
-                    }
-
-                    // Yol Kenarı Park Etmiş Arabalar
-                    if (Math.random() > 0.65) {
-                        const carColor = carColors[Math.floor(Math.random() * carColors.length)];
-                        const carMat = new THREE.MeshStandardMaterial({ color: carColor, roughness: 0.2 });
-                        const carBody = new THREE.Mesh(new THREE.BoxGeometry(4.5, 2, 9), carMat);
-                        carBody.position.set(x + 15, 1.2, z); scene.add(carBody);
-                        
-                        const carTop = new THREE.Mesh(new THREE.BoxGeometry(3.8, 1.4, 4.5), glassMat);
-                        carTop.position.set(x + 15, 2.8, z - 0.5); scene.add(carTop);
-                        collidableBoxes.push(new THREE.Box3().setFromObject(carBody));
-                    }
-
-                    // Banklar ve Çöp Kutuları
-                    if (Math.random() > 0.7) {
-                        const bench = new THREE.Mesh(new THREE.BoxGeometry(4, 1.2, 1.5), benchMat);
-                        bench.position.set(x - 12, 0.6, z + 12); scene.add(bench);
-
-                        const bin = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2, 12), poleMat);
-                        bin.position.set(x - 15, 1, z + 12); scene.add(bin);
-                    }
                 }
             }
         }
 
+        /* --- İNSANSI GERÇEKÇİ NPC TASARIMI --- */
         function createSingleNPC(char) {
             const npcGroup = new THREE.Group();
-            const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 2.8, 16);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: char.color, roughness: 0.3 });
-            const body = new THREE.Mesh(bodyGeo, bodyMat); body.position.y = 1.4;
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), bodyMat); head.position.y = 3.0;
-            npcGroup.add(body); npcGroup.add(head);
+
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.6 });
+            const clothesMat = new THREE.MeshStandardMaterial({ color: char.color, roughness: 0.4 });
+
+            // Gövde (Torso)
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.4, 0.5), clothesMat);
+            torso.position.y = 1.9; npcGroup.add(torso);
+
+            // Baş
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), skinMat);
+            head.position.y = 2.9; npcGroup.add(head);
+
+            // Bacaklar
+            const legLeft = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.2, 0.4), clothesMat);
+            legLeft.position.set(-0.25, 0.6, 0); npcGroup.add(legLeft);
+
+            const legRight = legLeft.clone();
+            legRight.position.set(0.25, 0.6, 0); npcGroup.add(legRight);
+
+            // Kollar
+            const armLeft = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.2, 0.35), skinMat);
+            armLeft.position.set(-0.7, 1.8, 0); npcGroup.add(armLeft);
+
+            const armRight = armLeft.clone();
+            armRight.position.set(0.7, 1.8, 0); npcGroup.add(armRight);
 
             let rx = (Math.random() - 0.5) * 280;
             let rz = (Math.random() - 0.5) * 280;
-            npcGroup.position.set(rx, playerHeight, rz);
+            npcGroup.position.set(rx, 0, rz);
 
             scene.add(npcGroup);
 
@@ -537,7 +471,7 @@
             setTimeout(() => {
                 let rx = (Math.random() - 0.5) * 280;
                 let rz = (Math.random() - 0.5) * 280;
-                npc.mesh.position.set(rx, playerHeight, rz);
+                npc.mesh.position.set(rx, 0, rz);
                 npc.mesh.rotation.set(0, 0, 0);
                 npc.hp = 1000;
                 npc.isDead = false;
@@ -586,65 +520,107 @@
             });
         }
 
+        /* --- TEMEL SALDIRI (E TUŞU ATEŞ ETME) --- */
+        function shootElement() {
+            if (isGameOver) return;
+            const projGeo = new THREE.SphereGeometry(1.2, 16, 16);
+            const projMat = new THREE.MeshBasicMaterial({ color: selectedChar.color });
+            const proj = new THREE.Mesh(projGeo, projMat);
+            const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+            proj.position.copy(camera.position).addScaledVector(dir, 2);
+            proj.userData = { velocity: dir.multiplyScalar(3.0), damage: 100, owner: 'player' };
+            scene.add(proj); projectiles.push(proj);
+        }
+
+        /* --- DÜZELTİLMİŞ Q VE R ÖZEL YETENEKLERİ --- */
         function triggerAbilityQ() {
             if (isGameOver) return;
             const now = Date.now();
+
+            if (selectedChar.name === "Işık") {
+                // Işık elementi basılı tutmalı / toggle yapıldı
+                return; 
+            }
+
             if (now < cooldowns.q) return;
 
-            if (selectedChar.name === "Buz") {
-                const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
+            const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+
+            if (selectedChar.name === "Ateş") {
+                // Alev Dalgası
+                for(let i = -2; i <= 2; i++) {
+                    const pGeo = new THREE.SphereGeometry(1.8, 16, 16);
+                    const pMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
+                    const p = new THREE.Mesh(pGeo, pMat);
+                    const spreadDir = dir.clone().applyAxisAngle(new THREE.Vector3(0,1,0), i * 0.15);
+                    p.position.copy(camera.position).addScaledVector(spreadDir, 2);
+                    p.userData = { velocity: spreadDir.multiplyScalar(2.5), damage: 130, owner: 'player' };
+                    scene.add(p); projectiles.push(p);
+                }
+                cooldowns.q = now + 4000;
+            }
+            else if (selectedChar.name === "Su") {
+                // Su Hortumu
+                const pGeo = new THREE.CylinderGeometry(1.5, 0.5, 6, 16);
+                const pMat = new THREE.MeshBasicMaterial({ color: 0x0099ff, transparent: true, opacity: 0.8 });
+                const p = new THREE.Mesh(pGeo, pMat);
+                p.position.copy(camera.position).addScaledVector(dir, 3);
+                p.userData = { velocity: dir.multiplyScalar(2.0), damage: 150, owner: 'player' };
+                scene.add(p); projectiles.push(p);
+                cooldowns.q = now + 5000;
+            }
+            else if (selectedChar.name === "Buz") {
+                // Buz Kayalıkları Wall
                 const wallGroup = new THREE.Group();
                 for (let i = -3; i <= 3; i++) {
                     const spikeGeo = new THREE.ConeGeometry(1.2, 7 + Math.random() * 3, 5);
-                    const spikeMat = new THREE.MeshStandardMaterial({ color: 0x88ffff, transparent: true, opacity: 0.85, roughness: 0.1 });
+                    const spikeMat = new THREE.MeshStandardMaterial({ color: 0x88ffff, transparent: true, opacity: 0.85 });
                     const spike = new THREE.Mesh(spikeGeo, spikeMat);
-                    spike.position.set(i * 1.5, 3.5, (Math.random() - 0.5));
+                    spike.position.set(i * 1.5, 3.5, 0);
                     wallGroup.add(spike);
                 }
                 const spawnPos = camera.position.clone().addScaledVector(dir, 5);
                 wallGroup.position.set(spawnPos.x, 0, spawnPos.z);
-                wallGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), dir);
                 scene.add(wallGroup);
                 
                 const box = new THREE.Box3().setFromObject(wallGroup);
                 collidableBoxes.push(box);
-                setTimeout(() => { scene.remove(wallGroup); collidableBoxes = collidableBoxes.filter(b => b !== box); }, 12000);
+                setTimeout(() => { scene.remove(wallGroup); collidableBoxes = collidableBoxes.filter(b => b !== box); }, 8000);
                 cooldowns.q = now + 8000;
             } 
             else if (selectedChar.name === "Gölge") {
+                // Gölge Işınlanma
                 if (shadowTeleportRing.visible) {
                     camera.position.x = shadowTeleportRing.position.x;
                     camera.position.z = shadowTeleportRing.position.z;
                     cooldowns.q = now + 5000;
                 }
             } 
-            else if (selectedChar.name === "Işık") {
-                const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+            else if (selectedChar.name === "Şimşek") {
+                // Yıldırım Çarpması
                 const raycaster = new THREE.Raycaster(camera.position, dir);
                 const hits = raycaster.intersectObjects(cityObjects, true);
+                let targetPoint = camera.position.clone().addScaledVector(dir, 40);
+                if(hits.length > 0) targetPoint = hits[0].point;
 
-                let maxDist = 80;
-                if (hits.length > 0) maxDist = Math.min(maxDist, hits[0].distance);
-
-                const laserGeo = new THREE.CylinderGeometry(0.3, 0.3, maxDist, 16);
-                const laserMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-                const laser = new THREE.Mesh(laserGeo, laserMat);
-
-                laser.position.copy(camera.position).addScaledVector(dir, maxDist / 2);
-                laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-                scene.add(laser);
+                const boltGeo = new THREE.CylinderGeometry(0.3, 0.3, 60, 8);
+                const boltMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+                const bolt = new THREE.Mesh(boltGeo, boltMat);
+                bolt.position.copy(targetPoint); bolt.position.y += 30;
+                scene.add(bolt);
+                setTimeout(() => scene.remove(bolt), 200);
 
                 npcs.forEach(npc => {
-                    if (!npc.isDead && camera.position.distanceTo(npc.mesh.position) <= maxDist) {
-                        applyDamageToNPC(npc, 150);
-                        npc.isStunned = true; npc.stunEndTime = Date.now() + 3000;
+                    if(!npc.isDead && npc.mesh.position.distanceTo(targetPoint) < 8) {
+                        applyDamageToNPC(npc, 200);
                     }
                 });
-
-                setTimeout(() => scene.remove(laser), 300);
-                cooldowns.q = now + 6000;
-            } else {
+                cooldowns.q = now + 5000;
+            }
+            else {
+                // Diğer Elementler Q Yeteneği
                 shootElement();
+                cooldowns.q = now + 3000;
             }
         }
 
@@ -658,13 +634,25 @@
                 iceShieldEndTime = now + 6000;
                 cooldowns.r = now + 16000;
             } 
-            else if (selectedChar.name === "Gölge") {
-                shootBigSphere(0x8800ff, 5000, 180, 'player');
+            else if (selectedChar.name === "Gölge" || selectedChar.name === "Ateş" || selectedChar.name === "Lav") {
+                shootBigSphere(selectedChar.color, 5000, 220, 'player');
                 cooldowns.r = now + 12000;
             } 
             else if (selectedChar.name === "Işık") {
-                shootBigSphere(0xffffff, 6000, 160, 'player');
-                cooldowns.r = now + 10000;
+                isBlinded = true;
+                blindEndTime = now + 4000;
+                npcs.forEach(npc => {
+                    if (!npc.isDead && camera.position.distanceTo(npc.mesh.position) < 30) {
+                        applyDamageToNPC(npc, 160);
+                        npc.isStunned = true; npc.stunEndTime = Date.now() + 4000;
+                    }
+                });
+                cooldowns.r = now + 12000;
+            }
+            else if (selectedChar.name === "Doğa") {
+                playerHP = Math.min(maxHP, playerHP + 300);
+                createDamageText(camera.position, -300);
+                cooldowns.r = now + 15000;
             }
         }
 
@@ -681,17 +669,6 @@
             sphere.position.copy(startPos).addScaledVector(dir, 3);
             sphere.userData = { velocity: dir.multiplyScalar(2.0), blindDuration: blindDuration, damage: damage, owner: owner };
             scene.add(sphere); projectiles.push(sphere);
-        }
-
-        function shootElement() {
-            if (isGameOver) return;
-            const projGeo = new THREE.SphereGeometry(1.2, 16, 16);
-            const projMat = new THREE.MeshBasicMaterial({ color: selectedChar.color });
-            const proj = new THREE.Mesh(projGeo, projMat);
-            const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
-            proj.position.copy(camera.position).addScaledVector(dir, 2);
-            proj.userData = { velocity: dir.multiplyScalar(3.0), damage: 100, owner: 'player' };
-            scene.add(proj); projectiles.push(proj);
         }
 
         function setupControls() {
@@ -715,7 +692,11 @@
                 const key = e.key.toLowerCase();
                 if (key === 'w') keys.w = true; if (key === 's') keys.s = true;
                 if (key === 'a') keys.a = true; if (key === 'd') keys.d = true;
-                if (key === 'q') triggerAbilityQ();
+                if (key === 'e') shootElement(); // E ATEŞ ETME
+                if (key === 'q') {
+                    if (selectedChar.name === "Işık") isLightLaserActive = true;
+                    else triggerAbilityQ();
+                }
                 if (key === 'r') triggerAbilityR();
                 if (key === 'f') executePunch();
                 if (e.code === 'Space') jump();
@@ -725,6 +706,7 @@
                 const key = e.key.toLowerCase();
                 if (key === 'w') keys.w = false; if (key === 's') keys.s = false;
                 if (key === 'a') keys.a = false; if (key === 'd') keys.d = false;
+                if (key === 'q' && selectedChar.name === "Işık") isLightLaserActive = false;
             });
 
             const joyZone = document.getElementById('joystick-zone');
@@ -763,7 +745,13 @@
             bindBtn('btn-shoot-mobile', () => shootElement());
             bindBtn('btn-punch-mobile', () => executePunch());
             bindBtn('btn-jump-mobile', () => jump());
-            bindBtn('btn-q-mobile', () => triggerAbilityQ());
+            bindBtn('btn-q-mobile', () => {
+                if(selectedChar.name === "Işık") {
+                    isLightLaserActive = !isLightLaserActive; // MOBİLDE 1 BASIŞ AÇAR 2 BASIŞ KAPATIR
+                } else {
+                    triggerAbilityQ();
+                }
+            });
             bindBtn('btn-r-mobile', () => triggerAbilityR());
         }
 
@@ -794,6 +782,7 @@
                 document.getElementById('blind-overlay').style.opacity = '0';
             }
 
+            // Gölge Işınlanma Hedef Halkası
             if (selectedChar.name === "Gölge") {
                 const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
                 const raycaster = new THREE.Raycaster(camera.position, dir);
@@ -804,6 +793,22 @@
                     shadowTeleportRing.visible = true;
                 } else shadowTeleportRing.visible = false;
             } else if (shadowTeleportRing) shadowTeleportRing.visible = false;
+
+            // Işık Lazeri Q
+            if (selectedChar.name === "Işık" && isLightLaserActive) {
+                const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+                lightLaserMesh.position.copy(camera.position).addScaledVector(dir, 50);
+                lightLaserMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+                lightLaserMesh.visible = true;
+
+                npcs.forEach(npc => {
+                    if (!npc.isDead && camera.position.distanceTo(npc.mesh.position) < 60) {
+                        applyDamageToNPC(npc, 4);
+                    }
+                });
+            } else if (lightLaserMesh) {
+                lightLaserMesh.visible = false;
+            }
 
             if (isPunching) {
                 punchProgress += 0.15;
@@ -836,14 +841,13 @@
                     if (npc.deathProgress < 1) {
                         npc.deathProgress += 0.05;
                         npc.mesh.rotation.z = Math.min(Math.PI / 2, npc.deathProgress * (Math.PI / 2));
-                        npc.mesh.position.y = Math.max(0, playerHeight - npc.deathProgress * 2);
                     }
                     npc.hpBarEl.style.display = 'none';
                     return;
                 }
 
                 const npcVec = npc.mesh.position.clone();
-                npcVec.y += 3.8;
+                npcVec.y += 3.5;
                 npcVec.project(camera);
 
                 if (npcVec.z <= 1) {
@@ -895,18 +899,6 @@
                     npc.lastAttack = now;
                     if (targetPos === camera.position) applyDamageToPlayer(50);
                 } 
-                else if (minDist <= 25 && now - npc.lastSkillQ > 6000 && (npc.element.name === "Gölge" || npc.element.name === "Işık")) {
-                    npc.lastSkillQ = now;
-                    if (npc.element.name === "Gölge") {
-                        npc.mesh.position.copy(targetPos).addScaledVector(toTarget, -5);
-                    } else if (npc.element.name === "Işık") {
-                        if (targetPos === camera.position) applyDamageToPlayer(80);
-                    }
-                }
-                else if (minDist <= 30 && now - npc.lastSkillR > 10000 && (npc.element.name === "Gölge" || npc.element.name === "Işık")) {
-                    npc.lastSkillR = now;
-                    shootBigSphere(npc.element.name === "Gölge" ? 0x8800ff : 0xffffff, 4000, 120, npc);
-                }
                 else if (minDist <= 35 && now - npc.lastAttack > 1600) {
                     npc.lastAttack = now;
                     const pGeo = new THREE.SphereGeometry(1, 12, 12);
@@ -918,7 +910,7 @@
                 }
             });
 
-            /* --- MERMİ DÖNGÜSÜ & HASAR KONTROLÜ --- */
+            /* --- MERMİ DÖNGÜSÜ --- */
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const p = projectiles[i];
                 p.position.add(p.userData.velocity);
@@ -933,10 +925,6 @@
                 } else {
                     if (p.position.distanceTo(camera.position) < 2.0) {
                         applyDamageToPlayer(p.userData.damage);
-                        if (p.userData.blindDuration) {
-                            isBlinded = true;
-                            blindEndTime = now + p.userData.blindDuration;
-                        }
                         scene.remove(p); projectiles.splice(i, 1);
                         continue;
                     }
@@ -952,7 +940,6 @@
                 if (p.position.distanceTo(camera.position) > 300) { scene.remove(p); projectiles.splice(i, 1); }
             }
 
-            // Can Arayüzü Güncelleme
             document.getElementById('hp-fill').style.width = `${(playerHP / maxHP) * 100}%`;
             document.getElementById('hp-text').innerText = `CAN: ${Math.floor(playerHP)} / ${maxHP}`;
 
