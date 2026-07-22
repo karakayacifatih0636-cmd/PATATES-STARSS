@@ -85,6 +85,23 @@
             pointer-events: none; z-index: 100;
         }
 
+        /* CAN BARI */
+        .health-bar-container {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            width: 260px; height: 28px; background: rgba(0,0,0,0.6);
+            border: 3px solid #fff; border-radius: 15px; padding: 3px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none;
+        }
+        .health-bar-fill {
+            width: 50%; height: 100%; background: linear-gradient(180deg, #00ff66 0%, #009933 100%);
+            border-radius: 10px; transition: width 0.2s ease-out;
+        }
+        .health-text {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            color: #fff; font-size: 16px; text-shadow: 2px 2px 0 #000;
+        }
+
         .crosshair {
             position: absolute; top: 50%; left: 50%; width: 12px; height: 12px;
             background: rgba(255, 255, 255, 0.9); border: 3px solid #000; border-radius: 50%;
@@ -106,12 +123,12 @@
 
         .touch-btn {
             position: absolute; border: 4px solid #000; border-radius: 50%; pointer-events: auto;
-            display: flex; justify-content: center; align-items: center;
-            color: white; font-size: 20px; text-shadow: 2px 2px 0px #000;
+            display: flex; justify-content: center; align-items: center; text-align: center;
+            color: white; font-size: 14px; text-shadow: 2px 2px 0px #000; line-height: 1.1;
             box-shadow: 0 6px 0px #000, 0 10px 15px rgba(0,0,0,0.5); cursor: pointer;
         }
         #btn-jump-mobile {
-            bottom: 40px; right: 40px; width: 90px; height: 90px;
+            bottom: 40px; right: 40px; width: 90px; height: 90px; font-size: 20px;
             background: linear-gradient(180deg, #66ccff 0%, #0066cc 100%);
         }
         #btn-shoot-mobile {
@@ -119,9 +136,19 @@
             background: linear-gradient(180deg, #ff6666 0%, #cc0000 100%);
         }
         #btn-flame-mobile {
-            bottom: 150px; right: 130px; width: 75px; height: 75px; font-size: 14px;
+            bottom: 150px; right: 130px; width: 75px; height: 75px;
             background: linear-gradient(180deg, #ff9900 0%, #ff3300 100%);
-            display: flex; text-align: center; line-height: 1.1;
+            display: none;
+        }
+        #btn-water-enter-mobile {
+            bottom: 150px; right: 130px; width: 75px; height: 75px;
+            background: linear-gradient(180deg, #3399ff 0%, #0044cc 100%);
+            display: none;
+        }
+        #btn-water-exit-mobile {
+            bottom: 240px; right: 130px; width: 75px; height: 75px;
+            background: linear-gradient(180deg, #66ffff 0%, #009999 100%);
+            display: none;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -139,9 +166,15 @@
     </div>
 
     <div id="game-ui">
+        <div class="health-bar-container">
+            <div class="health-bar-fill" id="hp-fill"></div>
+            <div class="health-text" id="hp-text">CAN: 50 / 100</div>
+        </div>
         <div class="crosshair"></div>
         <div id="joystick-zone"><div id="joystick-knob"></div></div>
         <div class="touch-btn" id="btn-flame-mobile">PÜSKÜRT<br>(Q)</div>
+        <div class="touch-btn" id="btn-water-enter-mobile">SUYA GİR<br>(Q)</div>
+        <div class="touch-btn" id="btn-water-exit-mobile">SUDAN ÇIK<br>(R)</div>
         <div class="touch-btn" id="btn-shoot-mobile">ATEŞ</div>
         <div class="touch-btn" id="btn-jump-mobile">ZIPLA</div>
     </div>
@@ -161,6 +194,18 @@
         ];
 
         let selectedChar = CHARACTERS[0];
+        let playerHP = 50;
+        const maxHP = 100;
+
+        function updateUIButtons() {
+            const flameBtn = document.getElementById('btn-flame-mobile');
+            const waterEnterBtn = document.getElementById('btn-water-enter-mobile');
+            const waterExitBtn = document.getElementById('btn-water-exit-mobile');
+
+            if(flameBtn) flameBtn.style.display = selectedChar.name === "Ateş" ? "flex" : "none";
+            if(waterEnterBtn) waterEnterBtn.style.display = selectedChar.name === "Su" ? "flex" : "none";
+            if(waterExitBtn) waterExitBtn.style.display = selectedChar.name === "Su" ? "flex" : "none";
+        }
 
         function renderCharacterCards() {
             const charContainer = document.getElementById('char-container');
@@ -173,10 +218,7 @@
                     document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
                     selectedChar = char;
-                    
-                    // Ateş püskürtme butonunun görünürlüğü
-                    const flameBtn = document.getElementById('btn-flame-mobile');
-                    if(flameBtn) flameBtn.style.display = selectedChar.name === "Ateş" ? "flex" : "none";
+                    updateUIButtons();
                 };
                 const icon = document.createElement('div'); icon.className = 'char-icon'; icon.style.background = char.icon;
                 const name = document.createElement('div'); name.className = 'char-name'; name.innerText = char.name;
@@ -187,10 +229,15 @@
         renderCharacterCards();
 
         let scene, camera, renderer;
-        let keys = { w: false, a: false, s: false, d: false, q: false };
+        let keys = { w: false, a: false, s: false, d: false, q: false, r: false };
         let projectiles = [];
         let flameParticles = [];
+        let waterTrails = [];
+        let lastWaterPos = new THREE.Vector3();
+
         let isFlaming = false;
+        let isSubmergedInWater = false;
+
         let isRightMouseDown = false, isLooking = false;
         let previousMousePosition = { x: 0, y: 0 };
         let yaw = 0, pitch = 0;
@@ -238,7 +285,7 @@
             createUltraDetailedCity();
         }
 
-        /* --- ŞEHİR YAPISI DEĞİŞTİRİLMEDİ --- */
+        /* --- ŞEHİR YAPISI (DOKUNULMADI) --- */
         function createUltraDetailedCity() {
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a1c1e, roughness: 0.9 });
             const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), groundMat);
@@ -273,7 +320,6 @@
 
             const winGeo = new THREE.PlaneGeometry(0.9, 1.6);
             const buildingMaterials = [matConcrete, matDarkConcrete, matBeige, matBrick, matGlass];
-
             const gridSpacing = 40;
 
             for (let i = -160; i <= 160; i += gridSpacing) {
@@ -442,7 +488,7 @@
         }
 
         function jump() {
-            if (isGrounded) {
+            if (isGrounded && !isSubmergedInWater) {
                 playerVelocityY = jumpStrength;
                 isGrounded = false;
                 const btn = document.getElementById('btn-jump-mobile');
@@ -450,14 +496,70 @@
             }
         }
 
-        /* --- ATEŞ PÜSKÜRTME MEKANİZMASI --- */
+        /* --- SU ELEMENTİ ÖZEL MEKANİZMALARI --- */
+        
+        // 1. Bastığın yere su birikintisi / gölet koyma (1 dakikada yok olur)
+        function spawnWaterTrail() {
+            if (selectedChar.name !== "Su" || isSubmergedInWater || !isGrounded) return;
+
+            const currentPos = new THREE.Vector3(camera.position.x, 0.05, camera.position.z);
+            if (currentPos.distanceTo(lastWaterPos) > 1.2) {
+                const puddleGeo = new THREE.CircleGeometry(1.2 + Math.random() * 0.4, 16);
+                const puddleMat = new THREE.MeshStandardMaterial({
+                    color: 0x0088ff,
+                    roughness: 0.1,
+                    metalness: 0.8,
+                    transparent: true,
+                    opacity: 0.75
+                });
+                const puddle = new THREE.Mesh(puddleGeo, puddleMat);
+                puddle.rotation.x = -Math.PI / 2;
+                puddle.position.copy(currentPos);
+                
+                puddle.userData = {
+                    createdAt: Date.now(),
+                    duration: 60000 // 60 Saniye (1 Dakika)
+                };
+
+                scene.add(puddle);
+                waterTrails.push(puddle);
+                lastWaterPos.copy(currentPos);
+            }
+        }
+
+        // 2. Su Formuna Girme (Q)
+        function enterWaterForm() {
+            if (selectedChar.name !== "Su" || isSubmergedInWater) return;
+            isSubmergedInWater = true;
+            
+            // Yere su birikintisi efekt havuzu ekle
+            const poolGeo = new THREE.CircleGeometry(2.5, 24);
+            const poolMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.85 });
+            const pool = new THREE.Mesh(poolGeo, poolMat);
+            puddleFormMesh = pool;
+            puddleFormMesh.rotation.x = -Math.PI / 2;
+            puddleFormMesh.position.set(camera.position.x, 0.08, camera.position.z);
+            scene.add(puddleFormMesh);
+        }
+
+        let puddleFormMesh = null;
+
+        // 3. Su Formundan Çıkma (R)
+        function exitWaterForm() {
+            if (!isSubmergedInWater) return;
+            isSubmergedInWater = false;
+            if (puddleFormMesh) {
+                scene.remove(puddleFormMesh);
+                puddleFormMesh = null;
+            }
+        }
+
         function emitFlame() {
-            if (selectedChar.name !== "Ateş") return;
+            if (selectedChar.name !== "Ateş" || isSubmergedInWater) return;
 
             const dir = new THREE.Vector3();
             camera.getWorldDirection(dir);
 
-            // Alev partikül sayısı
             for(let i = 0; i < 3; i++) {
                 const pSize = 0.3 + Math.random() * 0.5;
                 const pGeo = new THREE.SphereGeometry(pSize, 8, 8);
@@ -467,10 +569,8 @@
                 const pMat = new THREE.MeshBasicMaterial({ color: pColor, transparent: true, opacity: 0.9 });
                 const particle = new THREE.Mesh(pGeo, pMat);
 
-                // Kameraların hemen önünden fırlat
                 particle.position.copy(camera.position).addScaledVector(dir, 1.2);
                 
-                // Rastgele saçılma ekle
                 const spreadDir = dir.clone().add(new THREE.Vector3(
                     (Math.random() - 0.5) * 0.3,
                     (Math.random() - 0.5) * 0.3,
@@ -493,15 +593,23 @@
                 const key = e.key.toLowerCase();
                 if (key === 'w') keys.w = true; if (key === 's') keys.s = true;
                 if (key === 'a') keys.a = true; if (key === 'd') keys.d = true;
-                if (key === 'q') keys.q = true;
+                if (key === 'q') {
+                    keys.q = true;
+                    if (selectedChar.name === "Su") enterWaterForm();
+                }
+                if (key === 'r') {
+                    keys.r = true;
+                    if (selectedChar.name === "Su") exitWaterForm();
+                }
                 if (key === 'e') shootElement();
                 if (e.code === 'Space') jump();
             });
+
             window.addEventListener('keyup', (e) => {
                 const key = e.key.toLowerCase();
                 if (key === 'w') keys.w = false; if (key === 's') keys.s = false;
                 if (key === 'a') keys.a = false; if (key === 'd') keys.d = false;
-                if (key === 'q') keys.q = false;
+                if (key === 'q') keys.q = false; if (key === 'r') keys.r = false;
             });
 
             window.addEventListener('mousedown', (e) => {
@@ -557,6 +665,14 @@
             flameBtn.addEventListener('mousedown', () => { isFlaming = true; });
             flameBtn.addEventListener('mouseup', () => { isFlaming = false; });
 
+            const waterEnterBtn = document.getElementById('btn-water-enter-mobile');
+            waterEnterBtn.addEventListener('touchstart', (e) => { e.preventDefault(); enterWaterForm(); });
+            waterEnterBtn.addEventListener('click', () => enterWaterForm());
+
+            const waterExitBtn = document.getElementById('btn-water-exit-mobile');
+            waterExitBtn.addEventListener('touchstart', (e) => { e.preventDefault(); exitWaterForm(); });
+            waterExitBtn.addEventListener('click', () => exitWaterForm());
+
             const jumpBtn = document.getElementById('btn-jump-mobile');
             jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
             jumpBtn.addEventListener('click', () => jump());
@@ -588,6 +704,8 @@
         }
 
         function shootElement() {
+            if (isSubmergedInWater) return; // Su formundayken ateş edilemez
+
             const projGeo = new THREE.SphereGeometry(1.4, 32, 32);
             const projMat = new THREE.MeshStandardMaterial({ 
                 color: selectedChar.color, emissive: selectedChar.color, emissiveIntensity: 1.2, metalness: 0.5, roughness: 0.1 
@@ -605,6 +723,7 @@
         function startGame() {
             document.getElementById('menu-overlay').style.display = 'none';
             document.getElementById('game-ui').style.display = 'block';
+            updateUIButtons();
             initScene(); setupControls(); animate();
         }
 
@@ -613,43 +732,58 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            let moveX = joyX; let moveZ = joyY;
-            if (keys.w) moveZ = -1; if (keys.s) moveZ = 1;
-            if (keys.a) moveX = -1; if (keys.d) moveX = 1;
+            // SU FORMUNDAYKEN HAREKET KİLİTLENİR VE CAN DOLAR
+            if (isSubmergedInWater) {
+                camera.position.y = 0.6; // Yere sıfır görüş
+                if (puddleFormMesh) puddleFormMesh.position.set(camera.position.x, 0.08, camera.position.z);
 
-            const moveVector = new THREE.Vector2(moveX, moveZ);
-            if (moveVector.length() > 1) moveVector.normalize();
+                // Can Doldurma
+                if (playerHP < maxHP) {
+                    playerHP += 0.25;
+                    if (playerHP > maxHP) playerHP = maxHP;
+                }
+            } else {
+                let moveX = joyX; let moveZ = joyY;
+                if (keys.w) moveZ = -1; if (keys.s) moveZ = 1;
+                if (keys.a) moveX = -1; if (keys.d) moveX = 1;
 
-            const moveSpeed = 0.5;
-            const forward = new THREE.Vector3(); camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
-            const side = new THREE.Vector3(); side.crossVectors(camera.up, forward).negate();
+                const moveVector = new THREE.Vector2(moveX, moveZ);
+                if (moveVector.length() > 1) moveVector.normalize();
 
-            if (moveVector.length() > 0.05) {
-                camera.position.addScaledVector(forward, -moveVector.y * moveSpeed);
-                camera.position.addScaledVector(side, moveVector.x * moveSpeed);
+                const moveSpeed = 0.5;
+                const forward = new THREE.Vector3(); camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
+                const side = new THREE.Vector3(); side.crossVectors(camera.up, forward).negate();
+
+                if (moveVector.length() > 0.05) {
+                    camera.position.addScaledVector(forward, -moveVector.y * moveSpeed);
+                    camera.position.addScaledVector(side, moveVector.x * moveSpeed);
+                    spawnWaterTrail(); // Su yürüyüş izi ekle
+                }
+
+                const minAllowedY = playerHeight;
+                camera.position.y += playerVelocityY;
+                playerVelocityY += gravity;
+
+                if (camera.position.y <= minAllowedY) { 
+                    camera.position.y = minAllowedY; 
+                    playerVelocityY = 0; 
+                    isGrounded = true; 
+                }
             }
 
-            const minAllowedY = playerHeight;
-            camera.position.y += playerVelocityY;
-            playerVelocityY += gravity;
+            // Arayüz Can Güncelleme
+            document.getElementById('hp-fill').style.width = `${(playerHP / maxHP) * 100}%`;
+            document.getElementById('hp-text').innerText = `CAN: ${Math.floor(playerHP)} / ${maxHP}`;
 
-            if (camera.position.y <= minAllowedY) { 
-                camera.position.y = minAllowedY; 
-                playerVelocityY = 0; 
-                isGrounded = true; 
-            }
+            // Ateş Püskürtme Kontrolü
+            if ((keys.q || isFlaming) && selectedChar.name === "Ateş") emitFlame();
 
-            // ATEŞ PÜSKÜRTME KONTROLÜ
-            if ((keys.q || isFlaming) && selectedChar.name === "Ateş") {
-                emitFlame();
-            }
-
-            // Ateş püskürtme partiküllerini güncelle
+            // Ateş Partiküllerini Güncelle
             for (let i = flameParticles.length - 1; i >= 0; i--) {
                 const fp = flameParticles[i];
                 fp.position.add(fp.userData.velocity);
-                fp.scale.multiplyScalar(1.05); // Büyüyerek genişlesin
-                fp.material.opacity -= 0.03; // Yavaşça saydamlaşsın
+                fp.scale.multiplyScalar(1.05);
+                fp.material.opacity -= 0.03;
                 fp.userData.life++;
 
                 if (fp.userData.life >= fp.userData.maxLife || fp.material.opacity <= 0) {
@@ -658,7 +792,23 @@
                 }
             }
 
-            // Mermileri güncelle
+            // Su İzlerini Zamanla Temizle (1 Dakika / 60000ms)
+            const now = Date.now();
+            for (let i = waterTrails.length - 1; i >= 0; i--) {
+                const puddle = waterTrails[i];
+                const age = now - puddle.userData.createdAt;
+                
+                if (age > puddle.userData.duration - 3000) {
+                    puddle.material.opacity -= 0.005; // Son 3 saniye eriyerek kaybolur
+                }
+
+                if (age >= puddle.userData.duration || puddle.material.opacity <= 0) {
+                    scene.remove(puddle);
+                    waterTrails.splice(i, 1);
+                }
+            }
+
+            // Mermileri Güncelle
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const p = projectiles[i]; p.position.add(p.userData.velocity);
                 if (p.position.distanceTo(camera.position) > 350) { scene.remove(p); projectiles.splice(i, 1); }
