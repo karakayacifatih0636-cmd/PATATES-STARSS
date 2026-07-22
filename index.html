@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Element Savaşları - Ultra Detaylı Metropol</title>
+    <title>FOKELEMENTLERİ(bilgi sayar için Q E R tuşları)</title>
     <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
     <style>
         * {
@@ -135,6 +135,8 @@
             bottom: 150px; right: 40px; width: 75px; height: 75px; font-size: 16px;
             background: linear-gradient(180deg, #ff6666 0%, #cc0000 100%);
         }
+
+        /* Özel Element Butonları */
         #btn-flame-mobile {
             bottom: 150px; right: 130px; width: 75px; height: 75px;
             background: linear-gradient(180deg, #ff9900 0%, #ff3300 100%);
@@ -148,6 +150,30 @@
         #btn-water-exit-mobile {
             bottom: 240px; right: 130px; width: 75px; height: 75px;
             background: linear-gradient(180deg, #66ffff 0%, #009999 100%);
+            display: none;
+        }
+
+        /* Hava Butonları */
+        #btn-air-fly-mobile {
+            bottom: 150px; right: 130px; width: 75px; height: 75px;
+            background: linear-gradient(180deg, #e6ffff 0%, #80ffff 100%);
+            color: #006666; text-shadow: none; display: none;
+        }
+        #btn-air-speed-mobile {
+            bottom: 240px; right: 130px; width: 75px; height: 75px;
+            background: linear-gradient(180deg, #ccffff 0%, #33cc33 100%);
+            display: none;
+        }
+
+        /* Toprak Butonları */
+        #btn-earth-wall-mobile {
+            bottom: 150px; right: 130px; width: 75px; height: 75px;
+            background: linear-gradient(180deg, #a0522d 0%, #5c2c16 100%);
+            display: none;
+        }
+        #btn-earth-rocks-mobile {
+            bottom: 240px; right: 130px; width: 75px; height: 75px;
+            background: linear-gradient(180deg, #cd853f 0%, #8b4513 100%);
             display: none;
         }
     </style>
@@ -172,9 +198,15 @@
         </div>
         <div class="crosshair"></div>
         <div id="joystick-zone"><div id="joystick-knob"></div></div>
+        
         <div class="touch-btn" id="btn-flame-mobile">PÜSKÜRT<br>(Q)</div>
         <div class="touch-btn" id="btn-water-enter-mobile">SUYA GİR<br>(Q)</div>
         <div class="touch-btn" id="btn-water-exit-mobile">SUDAN ÇIK<br>(R)</div>
+        <div class="touch-btn" id="btn-air-fly-mobile">UÇ<br>(Q)</div>
+        <div class="touch-btn" id="btn-air-speed-mobile">HIZ<br>(R)</div>
+        <div class="touch-btn" id="btn-earth-wall-mobile">DUVAR<br>(Q)</div>
+        <div class="touch-btn" id="btn-earth-rocks-mobile">TAŞ AT<br>(R)</div>
+
         <div class="touch-btn" id="btn-shoot-mobile">ATEŞ</div>
         <div class="touch-btn" id="btn-jump-mobile">ZIPLA</div>
     </div>
@@ -201,10 +233,18 @@
             const flameBtn = document.getElementById('btn-flame-mobile');
             const waterEnterBtn = document.getElementById('btn-water-enter-mobile');
             const waterExitBtn = document.getElementById('btn-water-exit-mobile');
+            const airFlyBtn = document.getElementById('btn-air-fly-mobile');
+            const airSpeedBtn = document.getElementById('btn-air-speed-mobile');
+            const earthWallBtn = document.getElementById('btn-earth-wall-mobile');
+            const earthRocksBtn = document.getElementById('btn-earth-rocks-mobile');
 
             if(flameBtn) flameBtn.style.display = selectedChar.name === "Ateş" ? "flex" : "none";
             if(waterEnterBtn) waterEnterBtn.style.display = selectedChar.name === "Su" ? "flex" : "none";
             if(waterExitBtn) waterExitBtn.style.display = selectedChar.name === "Su" ? "flex" : "none";
+            if(airFlyBtn) airFlyBtn.style.display = selectedChar.name === "Hava" ? "flex" : "none";
+            if(airSpeedBtn) airSpeedBtn.style.display = selectedChar.name === "Hava" ? "flex" : "none";
+            if(earthWallBtn) earthWallBtn.style.display = selectedChar.name === "Toprak" ? "flex" : "none";
+            if(earthRocksBtn) earthRocksBtn.style.display = selectedChar.name === "Toprak" ? "flex" : "none";
         }
 
         function renderCharacterCards() {
@@ -233,10 +273,20 @@
         let projectiles = [];
         let flameParticles = [];
         let waterTrails = [];
+        let earthWalls = [];
+        let cityObjects = []; // Raycast için şehir objeleri
         let lastWaterPos = new THREE.Vector3();
 
         let isFlaming = false;
         let isSubmergedInWater = false;
+
+        // Hava Elementi Değişkenleri
+        let isAirSpeedActive = false;
+        let airSpeedEndTime = 0;
+        let airSpeedCooldownEnd = 0;
+        let isFlying = false;
+        let flyEndTime = 0;
+        let canFly = true; // Yere basınca tekrar aktif olur
 
         let isRightMouseDown = false, isLooking = false;
         let previousMousePosition = { x: 0, y: 0 };
@@ -285,13 +335,14 @@
             createUltraDetailedCity();
         }
 
-        /* --- ŞEHİR YAPISI (DOKUNULMADI) --- */
+        /* --- ŞEHİR YAPISI (BİREBİR KORUNDU) --- */
         function createUltraDetailedCity() {
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a1c1e, roughness: 0.9 });
             const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
+            cityObjects.push(ground);
 
             const matConcrete = new THREE.MeshStandardMaterial({ color: 0x7c838a, roughness: 0.7 });
             const matDarkConcrete = new THREE.MeshStandardMaterial({ color: 0x32373d, roughness: 0.6 });
@@ -345,6 +396,7 @@
                 for (let bz = -140; bz <= 140; bz += gridSpacing) {
                     const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(24, 0.3, 24), matSidewalk);
                     sidewalk.position.set(bx, 0.15, bz); sidewalk.receiveShadow = true; scene.add(sidewalk);
+                    cityObjects.push(sidewalk);
 
                     if (Math.abs(bx) < 10 && Math.abs(bz) < 10) continue;
 
@@ -355,6 +407,7 @@
 
                     const building = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), bMat);
                     building.position.set(bx, bh / 2 + 0.3, bz); building.castShadow = true; building.receiveShadow = true; scene.add(building);
+                    cityObjects.push(building);
 
                     const shopGlassMat = new THREE.MeshBasicMaterial({ color: 0x5588aa });
                     const shopFront = new THREE.Mesh(new THREE.PlaneGeometry(bw - 2, 3), shopGlassMat);
@@ -496,69 +549,133 @@
             }
         }
 
-        /* --- SU ELEMENTİ ÖZEL MEKANİZMALARI --- */
-        
-        // 1. Bastığın yere su birikintisi / gölet koyma (1 dakikada yok olur)
+        /* --- SU MEKANİZMALARI --- */
         function spawnWaterTrail() {
             if (selectedChar.name !== "Su" || isSubmergedInWater || !isGrounded) return;
-
             const currentPos = new THREE.Vector3(camera.position.x, 0.05, camera.position.z);
             if (currentPos.distanceTo(lastWaterPos) > 1.2) {
                 const puddleGeo = new THREE.CircleGeometry(1.2 + Math.random() * 0.4, 16);
                 const puddleMat = new THREE.MeshStandardMaterial({
-                    color: 0x0088ff,
-                    roughness: 0.1,
-                    metalness: 0.8,
-                    transparent: true,
-                    opacity: 0.75
+                    color: 0x0088ff, roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.75
                 });
                 const puddle = new THREE.Mesh(puddleGeo, puddleMat);
-                puddle.rotation.x = -Math.PI / 2;
-                puddle.position.copy(currentPos);
-                
-                puddle.userData = {
-                    createdAt: Date.now(),
-                    duration: 60000 // 60 Saniye (1 Dakika)
-                };
-
-                scene.add(puddle);
-                waterTrails.push(puddle);
-                lastWaterPos.copy(currentPos);
+                puddle.rotation.x = -Math.PI / 2; puddle.position.copy(currentPos);
+                puddle.userData = { createdAt: Date.now(), duration: 60000 };
+                scene.add(puddle); waterTrails.push(puddle); lastWaterPos.copy(currentPos);
             }
         }
 
-        // 2. Su Formuna Girme (Q)
+        let puddleFormMesh = null;
         function enterWaterForm() {
             if (selectedChar.name !== "Su" || isSubmergedInWater) return;
             isSubmergedInWater = true;
-            
-            // Yere su birikintisi efekt havuzu ekle
             const poolGeo = new THREE.CircleGeometry(2.5, 24);
             const poolMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.85 });
-            const pool = new THREE.Mesh(poolGeo, poolMat);
-            puddleFormMesh = pool;
+            puddleFormMesh = new THREE.Mesh(poolGeo, poolMat);
             puddleFormMesh.rotation.x = -Math.PI / 2;
             puddleFormMesh.position.set(camera.position.x, 0.08, camera.position.z);
             scene.add(puddleFormMesh);
         }
 
-        let puddleFormMesh = null;
-
-        // 3. Su Formundan Çıkma (R)
         function exitWaterForm() {
             if (!isSubmergedInWater) return;
             isSubmergedInWater = false;
-            if (puddleFormMesh) {
-                scene.remove(puddleFormMesh);
-                puddleFormMesh = null;
+            if (puddleFormMesh) { scene.remove(puddleFormMesh); puddleFormMesh = null; }
+        }
+
+        /* --- HAVA MEKANİZMALARI --- */
+        function activateAirSpeed() {
+            if (selectedChar.name !== "Hava") return;
+            const now = Date.now();
+            if (now < airSpeedCooldownEnd) return; // 20s Cooldown dolmadıysa basılamaz
+
+            isAirSpeedActive = true;
+            airSpeedEndTime = now + 15000; // 15 saniye sürer
+            airSpeedCooldownEnd = now + 20000; // Tekrar basabilmek için 20s
+        }
+
+        function activateAirFly() {
+            if (selectedChar.name !== "Hava" || !canFly || isFlying) return;
+            isFlying = true;
+            canFly = false; // Yere basana kadar kilitlenir
+            flyEndTime = Date.now() + 5000; // 5 saniye uçuş
+            playerVelocityY = 0;
+        }
+
+        /* --- TOPRAK MEKANİZMALARI --- */
+        function spawnEarthWall() {
+            if (selectedChar.name !== "Toprak") return;
+
+            // Ortadaki noktadan (Raycast) bakılan yeri tespit et
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(cityObjects, true);
+
+            if (intersects.length > 0) {
+                const hitPoint = intersects[0].point;
+                const wallHeight = 8;
+                const wallWidth = 10;
+                const wallDepth = 2;
+
+                const wallGeo = new THREE.BoxGeometry(wallWidth, wallHeight, wallDepth);
+                const wallMat = new THREE.MeshStandardMaterial({ color: 0x6e4723, roughness: 0.9 });
+                const wall = new THREE.Mesh(wallGeo, wallMat);
+
+                // Kameraların baktığı yöne doğru hizala
+                const dir = new THREE.Vector3();
+                camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
+                wall.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+
+                // Başlangıçta yerin dibinde duracak (animasyon için)
+                const startY = hitPoint.y - wallHeight / 2;
+                const targetY = hitPoint.y + wallHeight / 2;
+                wall.position.set(hitPoint.x, startY, hitPoint.z);
+                wall.castShadow = true; wall.receiveShadow = true;
+
+                wall.userData = {
+                    startY: startY,
+                    targetY: targetY,
+                    state: 'rising', // 'rising', 'standing', 'sinking'
+                    animProgress: 0,
+                    createdAt: Date.now(),
+                    duration: 60000 // 1 Dakika
+                };
+
+                scene.add(wall);
+                earthWalls.push(wall);
+                cityObjects.push(wall); // Diğer duvarlar üzerine konabilsin diye ekle
+            }
+        }
+
+        function shootEarthRocks() {
+            if (selectedChar.name !== "Toprak" || isSubmergedInWater) return;
+
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+
+            for (let i = 0; i < 6; i++) {
+                const rSize = 0.4 + Math.random() * 0.4;
+                const rockGeo = new THREE.DodecahedronGeometry(rSize);
+                const rockMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.8 });
+                const rock = new THREE.Mesh(rockGeo, rockMat);
+
+                rock.position.copy(camera.position).addScaledVector(dir, 1.5);
+
+                const spreadDir = dir.clone().add(new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.4,
+                    (Math.random() - 0.5) * 0.4,
+                    (Math.random() - 0.5) * 0.4
+                )).normalize();
+
+                rock.userData = { velocity: spreadDir.multiplyScalar(2.5 + Math.random()) };
+                scene.add(rock);
+                projectiles.push(rock);
             }
         }
 
         function emitFlame() {
             if (selectedChar.name !== "Ateş" || isSubmergedInWater) return;
-
-            const dir = new THREE.Vector3();
-            camera.getWorldDirection(dir);
+            const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
 
             for(let i = 0; i < 3; i++) {
                 const pSize = 0.3 + Math.random() * 0.5;
@@ -568,7 +685,6 @@
                 
                 const pMat = new THREE.MeshBasicMaterial({ color: pColor, transparent: true, opacity: 0.9 });
                 const particle = new THREE.Mesh(pGeo, pMat);
-
                 particle.position.copy(camera.position).addScaledVector(dir, 1.2);
                 
                 const spreadDir = dir.clone().add(new THREE.Vector3(
@@ -577,14 +693,8 @@
                     (Math.random() - 0.5) * 0.3
                 )).normalize();
 
-                particle.userData = {
-                    velocity: spreadDir.multiplyScalar(0.8 + Math.random() * 0.6),
-                    life: 0,
-                    maxLife: 20 + Math.random() * 10
-                };
-
-                scene.add(particle);
-                flameParticles.push(particle);
+                particle.userData = { velocity: spreadDir.multiplyScalar(0.8 + Math.random() * 0.6), life: 0, maxLife: 20 + Math.random() * 10 };
+                scene.add(particle); flameParticles.push(particle);
             }
         }
 
@@ -593,13 +703,18 @@
                 const key = e.key.toLowerCase();
                 if (key === 'w') keys.w = true; if (key === 's') keys.s = true;
                 if (key === 'a') keys.a = true; if (key === 'd') keys.d = true;
+
                 if (key === 'q') {
                     keys.q = true;
                     if (selectedChar.name === "Su") enterWaterForm();
+                    if (selectedChar.name === "Hava") activateAirFly();
+                    if (selectedChar.name === "Toprak") spawnEarthWall();
                 }
                 if (key === 'r') {
                     keys.r = true;
                     if (selectedChar.name === "Su") exitWaterForm();
+                    if (selectedChar.name === "Hava") activateAirSpeed();
+                    if (selectedChar.name === "Toprak") shootEarthRocks();
                 }
                 if (key === 'e') shootElement();
                 if (e.code === 'Space') jump();
@@ -636,10 +751,7 @@
                 joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
                 updateJoystick(e.touches ? e.touches[0] : e);
             }
-            function handleJoyMove(e) {
-                if (!joyActive) return; e.preventDefault();
-                updateJoystick(e.touches ? e.touches[0] : e);
-            }
+            function handleJoyMove(e) { if (!joyActive) return; e.preventDefault(); updateJoystick(e.touches ? e.touches[0] : e); }
             function handleJoyEnd(e) {
                 e.preventDefault(); joyActive = false;
                 joyKnob.style.transform = `translate(-50%, -50%)`; joyX = 0; joyY = 0;
@@ -662,20 +774,27 @@
             const flameBtn = document.getElementById('btn-flame-mobile');
             flameBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isFlaming = true; });
             flameBtn.addEventListener('touchend', (e) => { e.preventDefault(); isFlaming = false; });
-            flameBtn.addEventListener('mousedown', () => { isFlaming = true; });
-            flameBtn.addEventListener('mouseup', () => { isFlaming = false; });
 
             const waterEnterBtn = document.getElementById('btn-water-enter-mobile');
             waterEnterBtn.addEventListener('touchstart', (e) => { e.preventDefault(); enterWaterForm(); });
-            waterEnterBtn.addEventListener('click', () => enterWaterForm());
 
             const waterExitBtn = document.getElementById('btn-water-exit-mobile');
             waterExitBtn.addEventListener('touchstart', (e) => { e.preventDefault(); exitWaterForm(); });
-            waterExitBtn.addEventListener('click', () => exitWaterForm());
+
+            const airFlyBtn = document.getElementById('btn-air-fly-mobile');
+            airFlyBtn.addEventListener('touchstart', (e) => { e.preventDefault(); activateAirFly(); });
+
+            const airSpeedBtn = document.getElementById('btn-air-speed-mobile');
+            airSpeedBtn.addEventListener('touchstart', (e) => { e.preventDefault(); activateAirSpeed(); });
+
+            const earthWallBtn = document.getElementById('btn-earth-wall-mobile');
+            earthWallBtn.addEventListener('touchstart', (e) => { e.preventDefault(); spawnEarthWall(); });
+
+            const earthRocksBtn = document.getElementById('btn-earth-rocks-mobile');
+            earthRocksBtn.addEventListener('touchstart', (e) => { e.preventDefault(); shootEarthRocks(); });
 
             const jumpBtn = document.getElementById('btn-jump-mobile');
             jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
-            jumpBtn.addEventListener('click', () => jump());
 
             let touchStartX = 0, touchStartY = 0; let activeLookTouchId = null;
             window.addEventListener('touchstart', (e) => {
@@ -704,16 +823,14 @@
         }
 
         function shootElement() {
-            if (isSubmergedInWater) return; // Su formundayken ateş edilemez
-
+            if (isSubmergedInWater) return;
             const projGeo = new THREE.SphereGeometry(1.4, 32, 32);
             const projMat = new THREE.MeshStandardMaterial({ 
                 color: selectedChar.color, emissive: selectedChar.color, emissiveIntensity: 1.2, metalness: 0.5, roughness: 0.1 
             });
             const proj = new THREE.Mesh(projGeo, projMat);
             const light = new THREE.PointLight(selectedChar.color, 4, 25);
-            proj.add(light);
-            proj.position.copy(camera.position);
+            proj.add(light); proj.position.copy(camera.position);
 
             const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
             proj.userData = { velocity: dir.multiplyScalar(3.5) };
@@ -731,17 +848,28 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            const now = Date.now();
 
-            // SU FORMUNDAYKEN HAREKET KİLİTLENİR VE CAN DOLAR
-            if (isSubmergedInWater) {
-                camera.position.y = 0.6; // Yere sıfır görüş
-                if (puddleFormMesh) puddleFormMesh.position.set(camera.position.x, 0.08, camera.position.z);
+            // Hava Hız Kontrolü (%10 Hız Artışı)
+            if (isAirSpeedActive && now > airSpeedEndTime) {
+                isAirSpeedActive = false;
+            }
+            let moveSpeed = isAirSpeedActive ? 0.55 : 0.5;
 
-                // Can Doldurma
-                if (playerHP < maxHP) {
-                    playerHP += 0.25;
-                    if (playerHP > maxHP) playerHP = maxHP;
+            // Hava Uçma Kontrolü
+            if (isFlying) {
+                if (now > flyEndTime) {
+                    isFlying = false;
+                } else {
+                    playerVelocityY = 0; // Yerçekimini sıfırla
                 }
+            }
+
+            // Su Formu
+            if (isSubmergedInWater) {
+                camera.position.y = 0.6;
+                if (puddleFormMesh) puddleFormMesh.position.set(camera.position.x, 0.08, camera.position.z);
+                if (playerHP < maxHP) { playerHP += 0.25; if (playerHP > maxHP) playerHP = maxHP; }
             } else {
                 let moveX = joyX; let moveZ = joyY;
                 if (keys.w) moveZ = -1; if (keys.s) moveZ = 1;
@@ -750,24 +878,29 @@
                 const moveVector = new THREE.Vector2(moveX, moveZ);
                 if (moveVector.length() > 1) moveVector.normalize();
 
-                const moveSpeed = 0.5;
-                const forward = new THREE.Vector3(); camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
+                const forward = new THREE.Vector3(); camera.getWorldDirection(forward);
+                if (!isFlying) forward.y = 0; // Uçmuyorsa y yönünde gitme
+                forward.normalize();
+                
                 const side = new THREE.Vector3(); side.crossVectors(camera.up, forward).negate();
 
                 if (moveVector.length() > 0.05) {
                     camera.position.addScaledVector(forward, -moveVector.y * moveSpeed);
                     camera.position.addScaledVector(side, moveVector.x * moveSpeed);
-                    spawnWaterTrail(); // Su yürüyüş izi ekle
+                    spawnWaterTrail();
                 }
 
-                const minAllowedY = playerHeight;
-                camera.position.y += playerVelocityY;
-                playerVelocityY += gravity;
+                if (!isFlying) {
+                    const minAllowedY = playerHeight;
+                    camera.position.y += playerVelocityY;
+                    playerVelocityY += gravity;
 
-                if (camera.position.y <= minAllowedY) { 
-                    camera.position.y = minAllowedY; 
-                    playerVelocityY = 0; 
-                    isGrounded = true; 
+                    if (camera.position.y <= minAllowedY) { 
+                        camera.position.y = minAllowedY; 
+                        playerVelocityY = 0; 
+                        isGrounded = true; 
+                        canFly = true; // Yere basınca Hava Uçma tekrar kullanılabilir!
+                    }
                 }
             }
 
@@ -778,33 +911,45 @@
             // Ateş Püskürtme Kontrolü
             if ((keys.q || isFlaming) && selectedChar.name === "Ateş") emitFlame();
 
-            // Ateş Partiküllerini Güncelle
-            for (let i = flameParticles.length - 1; i >= 0; i--) {
-                const fp = flameParticles[i];
-                fp.position.add(fp.userData.velocity);
-                fp.scale.multiplyScalar(1.05);
-                fp.material.opacity -= 0.03;
-                fp.userData.life++;
+            // Toprak Duvarları Animasyon & Zamanlayıcı
+            for (let i = earthWalls.length - 1; i >= 0; i--) {
+                const wall = earthWalls[i];
+                const age = now - wall.userData.createdAt;
 
-                if (fp.userData.life >= fp.userData.maxLife || fp.material.opacity <= 0) {
-                    scene.remove(fp);
-                    flameParticles.splice(i, 1);
+                if (wall.userData.state === 'rising') {
+                    wall.userData.animProgress += 0.08;
+                    wall.position.y = THREE.MathUtils.lerp(wall.userData.startY, wall.userData.targetY, wall.userData.animProgress);
+                    if (wall.userData.animProgress >= 1) {
+                        wall.position.y = wall.userData.targetY;
+                        wall.userData.state = 'standing';
+                    }
+                } else if (age >= wall.userData.duration - 2000) { // Son 2 saniyede aşağı iner
+                    wall.userData.state = 'sinking';
+                    wall.position.y -= 0.08;
+                }
+
+                if (age >= wall.userData.duration || wall.position.y <= wall.userData.startY) {
+                    scene.remove(wall);
+                    earthWalls.splice(i, 1);
                 }
             }
 
-            // Su İzlerini Zamanla Temizle (1 Dakika / 60000ms)
-            const now = Date.now();
+            // Ateş Partiküllerini Güncelle
+            for (let i = flameParticles.length - 1; i >= 0; i--) {
+                const fp = flameParticles[i]; fp.position.add(fp.userData.velocity);
+                fp.scale.multiplyScalar(1.05); fp.material.opacity -= 0.03; fp.userData.life++;
+                if (fp.userData.life >= fp.userData.maxLife || fp.material.opacity <= 0) {
+                    scene.remove(fp); flameParticles.splice(i, 1);
+                }
+            }
+
+            // Su İzlerini Güncelle (1 Dk)
             for (let i = waterTrails.length - 1; i >= 0; i--) {
                 const puddle = waterTrails[i];
                 const age = now - puddle.userData.createdAt;
-                
-                if (age > puddle.userData.duration - 3000) {
-                    puddle.material.opacity -= 0.005; // Son 3 saniye eriyerek kaybolur
-                }
-
+                if (age > puddle.userData.duration - 3000) puddle.material.opacity -= 0.005;
                 if (age >= puddle.userData.duration || puddle.material.opacity <= 0) {
-                    scene.remove(puddle);
-                    waterTrails.splice(i, 1);
+                    scene.remove(puddle); waterTrails.splice(i, 1);
                 }
             }
 
