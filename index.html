@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Element Savaşları - Ultra Detaylı Metropol</title>
+    <title>Element Savaşları - NPC Savaşları & Respawn</title>
     <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
     <style>
         * {
@@ -13,19 +13,14 @@
             touch-action: none;
         }
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: 'Lilita One', cursive, sans-serif;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; font-family: 'Lilita One', cursive, sans-serif;
             background-color: #000;
         }
 
-        /* --- BRAWL STARS MENÜSÜ --- */
+        /* --- MENÜ --- */
         #menu-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at center, #2b78ff 0%, #002266 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 1000;
@@ -35,14 +30,13 @@
         .top-bar {
             position: absolute; top: 0; left: 0; width: 100%; padding: 15px 20px;
             display: flex; justify-content: space-between; background: rgba(0, 0, 0, 0.4);
-            border-bottom: 3px solid rgba(255, 255, 255, 0.2);
-            z-index: 1001;
+            border-bottom: 3px solid rgba(255, 255, 255, 0.2); z-index: 1001;
         }
         .profile-name { color: white; font-size: 24px; text-shadow: 2px 2px 0 #000; }
         .coins { color: #ffcc00; font-size: 24px; text-shadow: 2px 2px 0 #000; }
 
         .menu-title {
-            font-size: 4rem; color: #fff;
+            font-size: 3.5rem; color: #fff;
             text-shadow: 0px 6px 0px #003399, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000, 2px 2px 0px #000;
             margin-bottom: 20px; text-align: center; letter-spacing: 2px; transform: skew(-5deg);
         }
@@ -77,9 +71,8 @@
             text-shadow: 3px 3px 0px #cc5200; box-shadow: 0 8px 0px #cc5200, 0 10px 20px rgba(0,0,0,0.5);
             cursor: pointer; z-index: 1001;
         }
-        .btn-play:active { transform: translateY(8px); box-shadow: 0 0px 0px #cc5200; }
 
-        /* --- OYUN İÇİ ARAYÜZ --- */
+        /* --- OYUN ARAYÜZÜ --- */
         #game-ui {
             display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 100;
@@ -92,7 +85,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none;
         }
         .health-bar-fill {
-            width: 50%; height: 100%; background: linear-gradient(180deg, #00ff66 0%, #009933 100%);
+            width: 100%; height: 100%; background: linear-gradient(180deg, #00ff66 0%, #009933 100%);
             border-radius: 10px; transition: width 0.2s ease-out;
         }
         .health-text {
@@ -104,13 +97,19 @@
         .crosshair {
             position: absolute; top: 50%; left: 50%; width: 12px; height: 12px;
             background: rgba(255, 255, 255, 0.9); border: 3px solid #000; border-radius: 50%;
-            transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%); pointer-events: none;
         }
 
+        #blind-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999;
+        }
+
+        /* JOYSTICK */
         #joystick-zone {
             position: absolute; bottom: 40px; left: 40px; width: 140px; height: 140px;
             background: rgba(0, 0, 0, 0.4); border: 4px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%; pointer-events: auto; backdrop-filter: blur(2px);
+            border-radius: 50%; pointer-events: auto; backdrop-filter: blur(2px); z-index: 200;
         }
 
         #joystick-knob {
@@ -123,28 +122,15 @@
         .touch-btn {
             position: absolute; border: 4px solid #000; border-radius: 50%; pointer-events: auto;
             display: flex; justify-content: center; align-items: center; text-align: center;
-            color: white; font-size: 13px; text-shadow: 2px 2px 0px #000; line-height: 1.1;
-            box-shadow: 0 6px 0px #000, 0 10px 15px rgba(0,0,0,0.5); cursor: pointer;
+            color: white; font-size: 12px; text-shadow: 2px 2px 0px #000; line-height: 1.1;
+            box-shadow: 0 6px 0px #000, 0 10px 15px rgba(0,0,0,0.5); cursor: pointer; z-index: 200;
         }
-        #btn-jump-mobile {
-            bottom: 40px; right: 40px; width: 90px; height: 90px; font-size: 20px;
-            background: linear-gradient(180deg, #66ccff 0%, #0066cc 100%);
-        }
-        #btn-shoot-mobile {
-            bottom: 150px; right: 40px; width: 75px; height: 75px; font-size: 16px;
-            background: linear-gradient(180deg, #ff6666 0%, #cc0000 100%);
-        }
+        #btn-jump-mobile { bottom: 40px; right: 40px; width: 85px; height: 85px; font-size: 18px; background: linear-gradient(180deg, #66ccff 0%, #0066cc 100%); }
+        #btn-shoot-mobile { bottom: 140px; right: 40px; width: 75px; height: 75px; font-size: 15px; background: linear-gradient(180deg, #ff6666 0%, #cc0000 100%); }
+        #btn-punch-mobile { bottom: 230px; right: 40px; width: 70px; height: 70px; font-size: 14px; background: linear-gradient(180deg, #ffaa00 0%, #995500 100%); }
 
-        /* Özel Element Mobil Butonları */
-        #btn-flame-mobile { bottom: 150px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #ff9900 0%, #ff3300 100%); display: none; }
-        #btn-water-enter-mobile { bottom: 150px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #3399ff 0%, #0044cc 100%); display: none; }
-        #btn-water-exit-mobile { bottom: 240px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #66ffff 0%, #009999 100%); display: none; }
-        #btn-air-fly-mobile { bottom: 150px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #e6ffff 0%, #80ffff 100%); color: #006666; text-shadow: none; display: none; }
-        #btn-air-speed-mobile { bottom: 240px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #ccffff 0%, #33cc33 100%); display: none; }
-        #btn-earth-wall-mobile { bottom: 150px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #a0522d 0%, #5c2c16 100%); display: none; }
-        #btn-earth-rocks-mobile { bottom: 240px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #cd853f 0%, #8b4513 100%); display: none; }
-        #btn-lightning-strike-mobile { bottom: 150px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #ffff66 0%, #ffcc00 100%); color: #000; text-shadow: none; display: none; }
-        #btn-lightning-speed-mobile { bottom: 240px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #ffffff 0%, #ffcc00 100%); color: #000; text-shadow: none; display: none; }
+        #btn-q-mobile { bottom: 140px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #aa00ff 0%, #440088 100%); display: none; }
+        #btn-r-mobile { bottom: 230px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #00e5ff 0%, #006688 100%); display: none; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -153,7 +139,7 @@
     <div id="menu-overlay">
         <div class="top-bar">
             <div class="profile-name">ElementUstasi</div>
-            <div class="coins">🪙 2750</div>
+            <div class="coins">🪙 3500</div>
         </div>
         <div class="menu-title">ELEMENT<br>SAVAŞLARI</div>
         <div class="character-select-container" id="char-container"></div>
@@ -161,23 +147,17 @@
     </div>
 
     <div id="game-ui">
+        <div id="blind-overlay"></div>
         <div class="health-bar-container">
             <div class="health-bar-fill" id="hp-fill"></div>
-            <div class="health-text" id="hp-text">CAN: 50 / 100</div>
+            <div class="health-text" id="hp-text">CAN: 100 / 100</div>
         </div>
         <div class="crosshair"></div>
         <div id="joystick-zone"><div id="joystick-knob"></div></div>
         
-        <div class="touch-btn" id="btn-flame-mobile">PÜSKÜRT<br>(Q)</div>
-        <div class="touch-btn" id="btn-water-enter-mobile">SUYA GİR<br>(Q)</div>
-        <div class="touch-btn" id="btn-water-exit-mobile">SUDAN ÇIK<br>(R)</div>
-        <div class="touch-btn" id="btn-air-fly-mobile">UÇ<br>(Q)</div>
-        <div class="touch-btn" id="btn-air-speed-mobile">HIZ<br>(R)</div>
-        <div class="touch-btn" id="btn-earth-wall-mobile">DUVAR<br>(Q)</div>
-        <div class="touch-btn" id="btn-earth-rocks-mobile">TAŞ AT<br>(R)</div>
-        <div class="touch-btn" id="btn-lightning-strike-mobile">YILDIRIM<br>(Q)</div>
-        <div class="touch-btn" id="btn-lightning-speed-mobile">5X HIZ<br>(R)</div>
-
+        <div class="touch-btn" id="btn-q-mobile">ÖZEL Q</div>
+        <div class="touch-btn" id="btn-r-mobile">ÖZEL R</div>
+        <div class="touch-btn" id="btn-punch-mobile">YUMRUK<br>(F)</div>
         <div class="touch-btn" id="btn-shoot-mobile">ATEŞ</div>
         <div class="touch-btn" id="btn-jump-mobile">ZIPLA</div>
     </div>
@@ -197,26 +177,31 @@
         ];
 
         let selectedChar = CHARACTERS[0];
-        let playerHP = 50;
-        const maxHP = 100;
+        let playerHP = 100, maxHP = 100;
+        let isIceShieldActive = false, iceShieldEndTime = 0;
+        let isBlinded = false, blindEndTime = 0;
+
+        let scene, camera, renderer;
+        let keys = { w: false, a: false, s: false, d: false, q: false, r: false, f: false };
+        let projectiles = [], flameParticles = [], earthWalls = [], cityObjects = [], collidableBoxes = [];
+        let npcs = [];
+        let cooldowns = { q: 0, r: 0 };
+
+        let fistMesh;
+        let isPunching = false, punchProgress = 0;
+        let shadowTeleportRing = null;
+
+        let yaw = 0, pitch = 0;
+        let playerVelocityY = 0, isGrounded = true;
+        const gravity = -0.02, jumpStrength = 0.48, playerHeight = 3.5;
+        let joyX = 0, joyY = 0;
 
         function updateUIButtons() {
-            const btns = {
-                'btn-flame-mobile': selectedChar.name === "Ateş",
-                'btn-water-enter-mobile': selectedChar.name === "Su",
-                'btn-water-exit-mobile': selectedChar.name === "Su",
-                'btn-air-fly-mobile': selectedChar.name === "Hava",
-                'btn-air-speed-mobile': selectedChar.name === "Hava",
-                'btn-earth-wall-mobile': selectedChar.name === "Toprak",
-                'btn-earth-rocks-mobile': selectedChar.name === "Toprak",
-                'btn-lightning-strike-mobile': selectedChar.name === "Şimşek",
-                'btn-lightning-speed-mobile': selectedChar.name === "Şimşek"
-            };
-
-            for (let id in btns) {
-                const el = document.getElementById(id);
-                if(el) el.style.display = btns[id] ? "flex" : "none";
-            }
+            const btnQ = document.getElementById('btn-q-mobile');
+            const btnR = document.getElementById('btn-r-mobile');
+            btnQ.style.display = "flex"; btnR.style.display = "flex";
+            btnQ.innerText = `${selectedChar.name.toUpperCase()}\n(Q)`;
+            btnR.innerText = `GÜÇ\n(R)`;
         }
 
         function renderCharacterCards() {
@@ -237,44 +222,12 @@
                 card.appendChild(icon); card.appendChild(name); charContainer.appendChild(card);
             });
         }
-
         renderCharacterCards();
-
-        let scene, camera, renderer;
-        let keys = { w: false, a: false, s: false, d: false, q: false, r: false };
-        let projectiles = [];
-        let flameParticles = [];
-        let waterTrails = [];
-        let earthWalls = [];
-        let cityObjects = []; // Raycast için
-        let collidableBoxes = []; // Duvar/Bina Çarpışma Bounding Box'ları
-        let lastWaterPos = new THREE.Vector3();
-
-        let isFlaming = false;
-        let isSubmergedInWater = false;
-
-        // Hava Değişkenleri
-        let isAirSpeedActive = false, airSpeedEndTime = 0, airSpeedCooldownEnd = 0;
-        let isFlying = false, flyEndTime = 0, canFly = true;
-
-        // Şimşek Değişkenleri
-        let isLightningSpeedActive = false, lightningSpeedEndTime = 0, lightningSpeedCooldownEnd = 0;
-
-        let isRightMouseDown = false, isLooking = false;
-        let previousMousePosition = { x: 0, y: 0 };
-        let yaw = 0, pitch = 0;
-
-        let playerVelocityY = 0;
-        let isGrounded = true;
-        const gravity = -0.02;
-        const jumpStrength = 0.48;
-        const playerHeight = 3.5;
-        let joyX = 0, joyY = 0;
 
         function initScene() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x3a4f63);
-            scene.fog = new THREE.FogExp2(0x3a4f63, 0.003);
+            scene.background = new THREE.Color(0x1a2530);
+            scene.fog = new THREE.FogExp2(0x1a2530, 0.003);
 
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, playerHeight, 0);
@@ -283,25 +236,30 @@
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
 
-            window.addEventListener('contextmenu', e => e.preventDefault());
+            const ambientLight = new THREE.AmbientLight(0xddeeff, 0.6); scene.add(ambientLight);
+            const sunLight = new THREE.DirectionalLight(0xfffaed, 1.2); sunLight.position.set(150, 300, 150);
+            sunLight.castShadow = true; scene.add(sunLight);
 
-            const ambientLight = new THREE.AmbientLight(0xddeeff, 0.6);
-            scene.add(ambientLight);
+            const fistGeo = new THREE.BoxGeometry(0.3, 0.3, 0.8);
+            const fistMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
+            fistMesh = new THREE.Mesh(fistGeo, fistMat);
+            fistMesh.position.set(0.6, -0.4, -0.8);
+            camera.add(fistMesh);
+            scene.add(camera);
 
-            const sunLight = new THREE.DirectionalLight(0xfffaed, 1.3);
-            sunLight.position.set(150, 300, 150);
-            sunLight.castShadow = true;
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
-            scene.add(sunLight);
+            const ringGeo = new THREE.RingGeometry(1.5, 2, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x8800ff, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+            shadowTeleportRing = new THREE.Mesh(ringGeo, ringMat);
+            shadowTeleportRing.rotation.x = -Math.PI / 2;
+            shadowTeleportRing.visible = false;
+            scene.add(shadowTeleportRing);
 
-            createUltraDetailedCity();
+            createUltraCity();
+            spawn20SmartNPCs();
         }
 
-        /* --- BİNA VE ENGEL ÇARPIŞMA KONTROLÜ --- */
         function checkCollision(newPos) {
             const playerRadius = 0.8;
             const playerMinY = newPos.y - playerHeight + 0.2;
@@ -309,364 +267,228 @@
 
             for (let i = 0; i < collidableBoxes.length; i++) {
                 const box = collidableBoxes[i];
-                // Yüksekliği uygun mu?
                 if (playerMaxY >= box.min.y && playerMinY <= box.max.y) {
-                    // X ve Z ekseninde yarıçap genişletmeli çarpışma kontrolü
                     if (newPos.x + playerRadius > box.min.x && newPos.x - playerRadius < box.max.x &&
                         newPos.z + playerRadius > box.min.z && newPos.z - playerRadius < box.max.z) {
-                        return true; // Engel var, geçemez!
+                        return true;
                     }
                 }
             }
             return false;
         }
 
-        /* --- ŞEHİR YAPISI --- */
-        function createUltraDetailedCity() {
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a1c1e, roughness: 0.9 });
+        function createUltraCity() {
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x111315, roughness: 0.9 });
             const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
-            scene.add(ground);
-            cityObjects.push(ground);
+            ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
+            scene.add(ground); cityObjects.push(ground);
 
-            const matConcrete = new THREE.MeshStandardMaterial({ color: 0x7c838a, roughness: 0.7 });
-            const matDarkConcrete = new THREE.MeshStandardMaterial({ color: 0x32373d, roughness: 0.6 });
-            const matBeige = new THREE.MeshStandardMaterial({ color: 0xd6caa9, roughness: 0.8 });
-            const matBrick = new THREE.MeshStandardMaterial({ color: 0x9e4333, roughness: 0.9 });
-            const matGlass = new THREE.MeshStandardMaterial({ color: 0x112233, roughness: 0.1, metalness: 0.9 });
-            const matWindowGlow = new THREE.MeshBasicMaterial({ color: 0xffe899 });
-            const matSidewalk = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 });
-            const matAsphaltLine = new THREE.MeshBasicMaterial({ color: 0xf5cf38 });
-            const matWhiteLine = new THREE.MeshBasicMaterial({ color: 0xffffff });
-            const matMetal = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8, roughness: 0.3 });
-            const matRedMetal = new THREE.MeshStandardMaterial({ color: 0xcc0000, roughness: 0.4 });
-            const matLampGlow = new THREE.MeshBasicMaterial({ color: 0xffffaa });
-            const matNeon1 = new THREE.MeshBasicMaterial({ color: 0xff0055 });
-            const matNeon2 = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
-            const matNeon3 = new THREE.MeshBasicMaterial({ color: 0x33ff33 });
-            const matTreeTrunk = new THREE.MeshStandardMaterial({ color: 0x4a3222 });
-            const matFoliage = new THREE.MeshStandardMaterial({ color: 0x226622, roughness: 0.8 });
-            const matCarColors = [
-                new THREE.MeshStandardMaterial({ color: 0xbb0000, metalness: 0.5, roughness: 0.3 }),
-                new THREE.MeshStandardMaterial({ color: 0x0033aa, metalness: 0.5, roughness: 0.3 }),
-                new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.7, roughness: 0.2 }),
-                new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.6, roughness: 0.3 }),
-                new THREE.MeshStandardMaterial({ color: 0xeeaa00, metalness: 0.4, roughness: 0.4 })
-            ];
+            const bMat = new THREE.MeshStandardMaterial({ color: 0x555c66, roughness: 0.7 });
+            const gridSpacing = 45;
 
-            const winGeo = new THREE.PlaneGeometry(0.9, 1.6);
-            const buildingMaterials = [matConcrete, matDarkConcrete, matBeige, matBrick, matGlass];
-            const gridSpacing = 40;
-
-            for (let i = -160; i <= 160; i += gridSpacing) {
-                for (let pos = -200; pos <= 200; pos += 8) {
-                    const lineZ = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 4), matAsphaltLine);
-                    lineZ.rotation.x = -Math.PI / 2; lineZ.position.set(i, 0.02, pos); scene.add(lineZ);
-                    const lineX = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.3), matAsphaltLine);
-                    lineX.rotation.x = -Math.PI / 2; lineX.position.set(pos, 0.02, i); scene.add(lineX);
-                }
-
-                for (let j = -160; j <= 160; j += gridSpacing) {
-                    for (let w = -5; w <= 5; w += 1.8) {
-                        const stripe1 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 5), matWhiteLine);
-                        stripe1.rotation.x = -Math.PI / 2; stripe1.position.set(i + w, 0.03, j + 9); scene.add(stripe1);
-                        const stripe2 = new THREE.Mesh(new THREE.PlaneGeometry(5, 1.2), matWhiteLine);
-                        stripe2.rotation.x = -Math.PI / 2; stripe2.position.set(i + 9, 0.03, j + w); scene.add(stripe2);
-                    }
-                    createTrafficLight(i - 8, j - 8, 0); createTrafficLight(i + 8, j + 8, Math.PI);
-                }
-            }
-
-            for (let bx = -140; bx <= 140; bx += gridSpacing) {
-                for (let bz = -140; bz <= 140; bz += gridSpacing) {
-                    const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(24, 0.3, 24), matSidewalk);
-                    sidewalk.position.set(bx, 0.15, bz); sidewalk.receiveShadow = true; scene.add(sidewalk);
-                    cityObjects.push(sidewalk);
-
-                    if (Math.abs(bx) < 10 && Math.abs(bz) < 10) continue;
-
-                    const bh = 20 + Math.random() * 50;
-                    const bw = 14 + Math.random() * 6;
-                    const bd = 14 + Math.random() * 6;
-                    const bMat = buildingMaterials[Math.floor(Math.random() * buildingMaterials.length)];
-
+            for (let bx = -135; bx <= 135; bx += gridSpacing) {
+                for (let bz = -135; bz <= 135; bz += gridSpacing) {
+                    if (Math.abs(bx) < 15 && Math.abs(bz) < 15) continue;
+                    const bh = 25 + Math.random() * 45;
+                    const bw = 16, bd = 16;
                     const building = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), bMat);
-                    building.position.set(bx, bh / 2 + 0.3, bz); building.castShadow = true; building.receiveShadow = true; scene.add(building);
-                    cityObjects.push(building);
-
-                    // Binalar için Çarpışma Kutusu
+                    building.position.set(bx, bh / 2, bz); building.castShadow = true; building.receiveShadow = true;
+                    scene.add(building); cityObjects.push(building);
                     collidableBoxes.push(new THREE.Box3().setFromObject(building));
-
-                    const shopGlassMat = new THREE.MeshBasicMaterial({ color: 0x5588aa });
-                    const shopFront = new THREE.Mesh(new THREE.PlaneGeometry(bw - 2, 3), shopGlassMat);
-                    shopFront.position.set(bx, 2, bz + bd / 2 + 0.02); scene.add(shopFront);
-
-                    const awning = new THREE.Mesh(new THREE.BoxGeometry(bw - 1, 0.2, 2), matRedMetal);
-                    awning.position.set(bx, 3.6, bz + bd / 2 + 1); scene.add(awning);
-
-                    const neonMat = [matNeon1, matNeon2, matNeon3][Math.floor(Math.random() * 3)];
-                    const sign = new THREE.Mesh(new THREE.BoxGeometry(6, 2, 0.4), neonMat);
-                    sign.position.set(bx, 4.8, bz + bd / 2 + 0.3); scene.add(sign);
-
-                    for (let yWin = 6; yWin < bh - 4; yWin += 3.8) {
-                        for (let xWin = -bw / 2 + 2; xWin < bw / 2 - 1; xWin += 2.8) {
-                            const wMesh = new THREE.Mesh(winGeo, matWindowGlow);
-                            wMesh.position.set(bx + xWin, yWin + 0.3, bz + bd / 2 + 0.02); scene.add(wMesh);
-                            const wMeshBack = new THREE.Mesh(winGeo, matWindowGlow);
-                            wMeshBack.position.set(bx + xWin, yWin + 0.3, bz - bd / 2 - 0.02); wMeshBack.rotation.y = Math.PI; scene.add(wMeshBack);
-                        }
-                    }
-
-                    createStreetLamp(bx - 10, bz + 10); createStreetLamp(bx + 10, bz - 10);
-                    if (Math.random() < 0.7) createTree(bx + 10, bz + 8);
-                    if (Math.random() < 0.7) createTree(bx - 10, bz - 8);
                 }
             }
-
-            function createStreetLamp(x, z) {
-                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 6), matMetal); pole.position.set(x, 3, z);
-                const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.4), matLampGlow); lamp.position.set(x, 6, z);
-                scene.add(pole, lamp);
-            }
-
-            function createTrafficLight(x, z, rot) {
-                const group = new THREE.Group();
-                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 7), matMetal); pole.position.y = 3.5;
-                const box = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.2, 0.8), matDarkConcrete); box.position.set(0, 6, 0);
-                group.add(pole, box); group.position.set(x, 0, z); group.rotation.y = rot; scene.add(group);
-            }
-
-            function createTree(x, z) {
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 3.5), matTreeTrunk); trunk.position.set(x, 1.75, z);
-                const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(2.2), matFoliage); foliage.position.set(x, 4.5, z);
-                scene.add(trunk, foliage);
-            }
         }
 
-        function jump() {
-            if (isGrounded && !isSubmergedInWater) {
-                playerVelocityY = jumpStrength;
-                isGrounded = false;
-            }
+        /* --- NPC OLUŞTURMA & CANLANDIRMA SİSTEMİ --- */
+        function createSingleNPC(char) {
+            const npcGroup = new THREE.Group();
+            const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 2.8, 16);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: char.color, roughness: 0.3 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat); body.position.y = 1.4;
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), bodyMat); head.position.y = 3.0;
+            npcGroup.add(body); npcGroup.add(head);
+
+            let rx = (Math.random() - 0.5) * 260;
+            let rz = (Math.random() - 0.5) * 260;
+            npcGroup.position.set(rx, playerHeight, rz);
+
+            scene.add(npcGroup);
+
+            return {
+                mesh: npcGroup,
+                element: char,
+                hp: 100, maxHp: 100,
+                lastAttack: 0,
+                isDead: false,
+                deathProgress: 0,
+                isStunned: false,
+                stunEndTime: 0
+            };
         }
 
-        /* --- SU MEKANİZMALARI --- */
-        function spawnWaterTrail() {
-            if (selectedChar.name !== "Su" || isSubmergedInWater || !isGrounded) return;
-            const currentPos = new THREE.Vector3(camera.position.x, 0.05, camera.position.z);
-            if (currentPos.distanceTo(lastWaterPos) > 1.2) {
-                const puddleGeo = new THREE.CircleGeometry(1.2 + Math.random() * 0.4, 16);
-                const puddleMat = new THREE.MeshStandardMaterial({ color: 0x0088ff, roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.75 });
-                const puddle = new THREE.Mesh(puddleGeo, puddleMat);
-                puddle.rotation.x = -Math.PI / 2; puddle.position.copy(currentPos);
-                puddle.userData = { createdAt: Date.now(), duration: 60000 };
-                scene.add(puddle); waterTrails.push(puddle); lastWaterPos.copy(currentPos);
-            }
+        function spawn20SmartNPCs() {
+            CHARACTERS.forEach((char) => {
+                for (let i = 0; i < 2; i++) {
+                    npcs.push(createSingleNPC(char));
+                }
+            });
         }
 
-        let puddleFormMesh = null;
-        function enterWaterForm() {
-            if (selectedChar.name !== "Su" || isSubmergedInWater) return;
-            isSubmergedInWater = true;
-            const poolGeo = new THREE.CircleGeometry(2.5, 24);
-            const poolMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.85 });
-            puddleFormMesh = new THREE.Mesh(poolGeo, poolMat);
-            puddleFormMesh.rotation.x = -Math.PI / 2;
-            puddleFormMesh.position.set(camera.position.x, 0.08, camera.position.z);
-            scene.add(puddleFormMesh);
+        /* --- NPC ÖLÜMÜ VE 5 SANİYE RESPAWN --- */
+        function killNPC(npc) {
+            if (npc.isDead) return;
+            npc.isDead = true;
+            npc.deathProgress = 0;
+
+            // 5 Saniye Sonra Yeniden Doğma
+            setTimeout(() => {
+                let rx = (Math.random() - 0.5) * 260;
+                let rz = (Math.random() - 0.5) * 260;
+                npc.mesh.position.set(rx, playerHeight, rz);
+                npc.mesh.rotation.set(0, 0, 0);
+                npc.hp = 100;
+                npc.isDead = false;
+                npc.deathProgress = 0;
+            }, 5000);
         }
 
-        function exitWaterForm() {
-            if (!isSubmergedInWater) return;
-            isSubmergedInWater = false;
-            if (puddleFormMesh) { scene.remove(puddleFormMesh); puddleFormMesh = null; }
+        /* --- YUMRUK SALDIRISI --- */
+        function executePunch() {
+            if (isPunching) return;
+            isPunching = true; punchProgress = 0;
+
+            npcs.forEach(npc => {
+                if (!npc.isDead && camera.position.distanceTo(npc.mesh.position) < 4.5) {
+                    npc.hp -= 25;
+                    if (npc.hp <= 0) killNPC(npc);
+                }
+            });
         }
 
-        /* --- HAVA MEKANİZMALARI --- */
-        function activateAirSpeed() {
-            if (selectedChar.name !== "Hava") return;
+        function triggerAbilityQ() {
             const now = Date.now();
-            if (now < airSpeedCooldownEnd) return;
-            isAirSpeedActive = true;
-            airSpeedEndTime = now + 15000;
-            airSpeedCooldownEnd = now + 20000;
-        }
+            if (now < cooldowns.q) return;
 
-        function activateAirFly() {
-            if (selectedChar.name !== "Hava" || !canFly || isFlying) return;
-            isFlying = true; canFly = false;
-            flyEndTime = Date.now() + 5000;
-            playerVelocityY = 0;
-        }
-
-        /* --- TOPRAK MEKANİZMALARI --- */
-        function spawnEarthWall() {
-            if (selectedChar.name !== "Toprak") return;
-
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            const intersects = raycaster.intersectObjects(cityObjects, true);
-
-            if (intersects.length > 0) {
-                const hitPoint = intersects[0].point;
-                const wallHeight = 8, wallWidth = 10, wallDepth = 2;
-
-                const wallGeo = new THREE.BoxGeometry(wallWidth, wallHeight, wallDepth);
-                const wallMat = new THREE.MeshStandardMaterial({ color: 0x6e4723, roughness: 0.9 });
-                const wall = new THREE.Mesh(wallGeo, wallMat);
-
-                const dir = new THREE.Vector3();
-                camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
-                wall.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
-
-                const startY = hitPoint.y - wallHeight / 2;
-                const targetY = hitPoint.y + wallHeight / 2;
-                wall.position.set(hitPoint.x, startY, hitPoint.z);
-                wall.castShadow = true; wall.receiveShadow = true;
-
-                // Çarpışma Kutusu Oluştur ve Listeye Ekle!
-                const wallBox = new THREE.Box3();
-                wall.userData = {
-                    startY: startY,
-                    targetY: targetY,
-                    state: 'rising',
-                    animProgress: 0,
-                    createdAt: Date.now(),
-                    duration: 60000,
-                    box: wallBox
-                };
-
-                scene.add(wall);
-                earthWalls.push(wall);
-                cityObjects.push(wall);
-            }
-        }
-
-        function shootEarthRocks() {
-            if (selectedChar.name !== "Toprak" || isSubmergedInWater) return;
-            const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
-
-            for (let i = 0; i < 6; i++) {
-                const rockGeo = new THREE.DodecahedronGeometry(0.4 + Math.random() * 0.4);
-                const rockMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.8 });
-                const rock = new THREE.Mesh(rockGeo, rockMat);
-                rock.position.copy(camera.position).addScaledVector(dir, 1.5);
-
-                const spreadDir = dir.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4)).normalize();
-                rock.userData = { velocity: spreadDir.multiplyScalar(2.5 + Math.random()) };
-                scene.add(rock); projectiles.push(rock);
-            }
-        }
-
-        /* --- ŞİMŞEK MEKANİZMALARI --- */
-        function triggerLightningStrike() {
-            if (selectedChar.name !== "Şimşek") return;
-
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            const intersects = raycaster.intersectObjects(cityObjects, true);
-
-            let targetPos = new THREE.Vector3();
-            if (intersects.length > 0) {
-                targetPos.copy(intersects[0].point);
-            } else {
+            if (selectedChar.name === "Buz") {
+                const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
+                const wallGroup = new THREE.Group();
+                for (let i = -3; i <= 3; i++) {
+                    const spikeGeo = new THREE.ConeGeometry(1.2, 7 + Math.random() * 3, 5);
+                    const spikeMat = new THREE.MeshStandardMaterial({ color: 0x88ffff, transparent: true, opacity: 0.85, roughness: 0.1 });
+                    const spike = new THREE.Mesh(spikeGeo, spikeMat);
+                    spike.position.set(i * 1.5, 3.5, (Math.random() - 0.5));
+                    wallGroup.add(spike);
+                }
+                const spawnPos = camera.position.clone().addScaledVector(dir, 5);
+                wallGroup.position.set(spawnPos.x, 0, spawnPos.z);
+                wallGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), dir);
+                scene.add(wallGroup);
+                
+                const box = new THREE.Box3().setFromObject(wallGroup);
+                collidableBoxes.push(box);
+                setTimeout(() => { scene.remove(wallGroup); collidableBoxes = collidableBoxes.filter(b => b !== box); }, 12000);
+                cooldowns.q = now + 8000;
+            } 
+            else if (selectedChar.name === "Gölge") {
+                if (shadowTeleportRing.visible) {
+                    camera.position.x = shadowTeleportRing.position.x;
+                    camera.position.z = shadowTeleportRing.position.z;
+                    cooldowns.q = now + 5000;
+                }
+            } 
+            else if (selectedChar.name === "Işık") {
                 const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
-                targetPos.copy(camera.position).addScaledVector(dir, 50);
+                const raycaster = new THREE.Raycaster(camera.position, dir);
+                const hits = raycaster.intersectObjects(cityObjects, true);
+
+                let maxDist = 80;
+                if (hits.length > 0) maxDist = Math.min(maxDist, hits[0].distance);
+
+                const laserGeo = new THREE.CylinderGeometry(0.3, 0.3, maxDist, 16);
+                const laserMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const laser = new THREE.Mesh(laserGeo, laserMat);
+
+                laser.position.copy(camera.position).addScaledVector(dir, maxDist / 2);
+                laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+                scene.add(laser);
+
+                npcs.forEach(npc => {
+                    if (!npc.isDead && camera.position.distanceTo(npc.mesh.position) <= maxDist) {
+                        npc.hp -= 35;
+                        npc.isStunned = true; npc.stunEndTime = Date.now() + 3000;
+                        if (npc.hp <= 0) killNPC(npc);
+                    }
+                });
+
+                setTimeout(() => scene.remove(laser), 300);
+                cooldowns.q = now + 6000;
+            } else {
+                shootElement();
             }
-
-            // Gökyüzü Başlangıcı (TargetPos üstü)
-            const startPos = targetPos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 10, 60, (Math.random() - 0.5) * 10));
-
-            // Zikzak Noktaları Oluştur
-            const points = [];
-            const segments = 12;
-            for (let i = 0; i <= segments; i++) {
-                const progress = i / segments;
-                const pt = new THREE.Vector3().copy(startPos).lerp(targetPos, progress);
-                if (i > 0 && i < segments) {
-                    pt.x += (Math.random() - 0.5) * 3;
-                    pt.y += (Math.random() - 0.5) * 1.5;
-                    pt.z += (Math.random() - 0.5) * 3;
-                }
-                points.push(pt);
-            }
-
-            // Yıldırım Çizgisi ve Tüpü
-            const curve = new THREE.CatmullRomCurve3(points);
-            const tubeGeo = new THREE.TubeGeometry(curve, 30, 0.25, 6, false);
-            const tubeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-            const tube = new THREE.Mesh(tubeGeo, tubeMat);
-
-            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-            const lineMat = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 4 });
-            const line = new THREE.Line(lineGeo, lineMat);
-
-            const group = new THREE.Group();
-            group.add(tube); group.add(line);
-
-            // Çarpma Parlama Işığı
-            const light = new THREE.PointLight(0xffff00, 15, 40);
-            light.position.copy(targetPos);
-            group.add(light);
-
-            scene.add(group);
-
-            // 0.2 Saniye Sonra Yıldırımı Yok Et
-            setTimeout(() => { scene.remove(group); }, 200);
         }
 
-        function activateLightningSpeed() {
-            if (selectedChar.name !== "Şimşek") return;
+        function triggerAbilityR() {
             const now = Date.now();
-            if (now < lightningSpeedCooldownEnd) return; // 1 Dakika Cooldown
+            if (now < cooldowns.r) return;
 
-            isLightningSpeedActive = true;
-            lightningSpeedEndTime = now + 7000; // 7 Saniye Süre
-            lightningSpeedCooldownEnd = now + 60000; // 1 Dakika Bekleme
+            if (selectedChar.name === "Buz") {
+                isIceShieldActive = true;
+                iceShieldEndTime = now + 6000;
+                cooldowns.r = now + 16000;
+            } 
+            else if (selectedChar.name === "Gölge") {
+                shootBigSphere(0x8800ff, 5000, 45);
+                cooldowns.r = now + 12000;
+            } 
+            else if (selectedChar.name === "Işık") {
+                shootBigSphere(0xffffff, 6000, 40);
+                cooldowns.r = now + 10000;
+            }
         }
 
-        function emitFlame() {
-            if (selectedChar.name !== "Ateş" || isSubmergedInWater) return;
+        function shootBigSphere(colorHex, blindDuration, damage) {
             const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+            const sphereGeo = new THREE.SphereGeometry(3.5, 32, 32);
+            const sphereMat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.85 });
+            const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+            sphere.position.copy(camera.position).addScaledVector(dir, 3);
+            sphere.userData = { velocity: dir.multiplyScalar(2.0), blindDuration: blindDuration, damage: damage, owner: 'player' };
+            scene.add(sphere); projectiles.push(sphere);
+        }
 
-            for(let i = 0; i < 3; i++) {
-                const pSize = 0.3 + Math.random() * 0.5;
-                const pGeo = new THREE.SphereGeometry(pSize, 8, 8);
-                const colors = [0xff1100, 0xff6600, 0xffcc00];
-                const pColor = colors[Math.floor(Math.random() * colors.length)];
-                
-                const pMat = new THREE.MeshBasicMaterial({ color: pColor, transparent: true, opacity: 0.9 });
-                const particle = new THREE.Mesh(pGeo, pMat);
-                particle.position.copy(camera.position).addScaledVector(dir, 1.2);
-                
-                const spreadDir = dir.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3)).normalize();
-                particle.userData = { velocity: spreadDir.multiplyScalar(0.8 + Math.random() * 0.6), life: 0, maxLife: 20 + Math.random() * 10 };
-                scene.add(particle); flameParticles.push(particle);
-            }
+        function shootElement() {
+            const projGeo = new THREE.SphereGeometry(1.2, 16, 16);
+            const projMat = new THREE.MeshBasicMaterial({ color: selectedChar.color });
+            const proj = new THREE.Mesh(projGeo, projMat);
+            const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+            proj.position.copy(camera.position).addScaledVector(dir, 2);
+            proj.userData = { velocity: dir.multiplyScalar(3.0), damage: 25, owner: 'player' };
+            scene.add(proj); projectiles.push(proj);
         }
 
         function setupControls() {
+            window.addEventListener('click', () => {
+                if (document.pointerLockElement !== document.body) {
+                    document.body.requestPointerLock();
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === document.body) {
+                    yaw -= e.movementX * 0.0025;
+                    pitch -= e.movementY * 0.0025;
+                    pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+                    camera.rotation.y = yaw; camera.rotation.x = pitch;
+                }
+            });
+
             window.addEventListener('keydown', (e) => {
                 const key = e.key.toLowerCase();
                 if (key === 'w') keys.w = true; if (key === 's') keys.s = true;
                 if (key === 'a') keys.a = true; if (key === 'd') keys.d = true;
-
-                if (key === 'q') {
-                    keys.q = true;
-                    if (selectedChar.name === "Su") enterWaterForm();
-                    if (selectedChar.name === "Hava") activateAirFly();
-                    if (selectedChar.name === "Toprak") spawnEarthWall();
-                    if (selectedChar.name === "Şimşek") triggerLightningStrike();
-                }
-                if (key === 'r') {
-                    keys.r = true;
-                    if (selectedChar.name === "Su") exitWaterForm();
-                    if (selectedChar.name === "Hava") activateAirSpeed();
-                    if (selectedChar.name === "Toprak") shootEarthRocks();
-                    if (selectedChar.name === "Şimşek") activateLightningSpeed();
-                }
-                if (key === 'e') shootElement();
+                if (key === 'q') triggerAbilityQ();
+                if (key === 'r') triggerAbilityR();
+                if (key === 'f') executePunch();
                 if (e.code === 'Space') jump();
             });
 
@@ -674,264 +496,219 @@
                 const key = e.key.toLowerCase();
                 if (key === 'w') keys.w = false; if (key === 's') keys.s = false;
                 if (key === 'a') keys.a = false; if (key === 'd') keys.d = false;
-                if (key === 'q') keys.q = false; if (key === 'r') keys.r = false;
             });
 
-            window.addEventListener('mousedown', (e) => {
-                if (e.button === 2) { isRightMouseDown = true; previousMousePosition = { x: e.clientX, y: e.clientY }; }
-            });
-            window.addEventListener('mouseup', (e) => { if (e.button === 2) isRightMouseDown = false; });
-            window.addEventListener('mousemove', (e) => {
-                if (!isRightMouseDown) return;
-                const deltaX = e.clientX - previousMousePosition.x; const deltaY = e.clientY - previousMousePosition.y;
-                yaw -= deltaX * 0.003; pitch -= deltaY * 0.003;
-                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
-                camera.rotation.y = yaw; camera.rotation.x = pitch;
-                previousMousePosition = { x: e.clientX, y: e.clientY };
-            });
-
-            // Joystick Kontrolü
             const joyZone = document.getElementById('joystick-zone');
             const joyKnob = document.getElementById('joystick-knob');
-            let joyActive = false; let joyCenter = { x: 0, y: 0 };
-            const maxJoyRadius = 50;
+            let joyActive = false, joyCenter = { x: 0, y: 0 };
 
             function handleJoyStart(e) {
-                e.preventDefault(); joyActive = true;
+                e.preventDefault(); e.stopPropagation(); joyActive = true;
                 const rect = joyZone.getBoundingClientRect();
                 joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-                updateJoystick(e.touches ? e.touches[0] : e);
+                updateJoy(e.touches ? e.touches[0] : e);
             }
-            function handleJoyMove(e) { if (!joyActive) return; e.preventDefault(); updateJoystick(e.touches ? e.touches[0] : e); }
+            function handleJoyMove(e) { if (!joyActive) return; e.preventDefault(); e.stopPropagation(); updateJoy(e.touches ? e.touches[0] : e); }
             function handleJoyEnd(e) {
-                e.preventDefault(); joyActive = false;
+                e.preventDefault(); e.stopPropagation(); joyActive = false;
                 joyKnob.style.transform = `translate(-50%, -50%)`; joyX = 0; joyY = 0;
             }
-            function updateJoystick(input) {
+            function updateJoy(input) {
                 let dx = input.clientX - joyCenter.x; let dy = input.clientY - joyCenter.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance > maxJoyRadius) { dx = (dx / distance) * maxJoyRadius; dy = (dy / distance) * maxJoyRadius; }
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 45) { dx = (dx / dist) * 45; dy = (dy / dist) * 45; }
                 joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                joyX = dx / maxJoyRadius; joyY = dy / maxJoyRadius;
+                joyX = dx / 45; joyY = dy / 45;
             }
 
             joyZone.addEventListener('touchstart', handleJoyStart, { passive: false });
             joyZone.addEventListener('touchmove', handleJoyMove, { passive: false });
             joyZone.addEventListener('touchend', handleJoyEnd, { passive: false });
 
-            // Mobil Buton Bağlamaları
-            function bindBtn(id, actionDown, actionUp = null) {
+            function bindBtn(id, action) {
                 const btn = document.getElementById(id);
                 if (!btn) return;
-                const start = (e) => { e.preventDefault(); e.stopPropagation(); actionDown(); };
-                const end = (e) => { e.preventDefault(); e.stopPropagation(); if(actionUp) actionUp(); };
-                btn.addEventListener('pointerdown', start);
-                if (actionUp) btn.addEventListener('pointerup', end);
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); action(); }, { passive: false });
             }
 
             bindBtn('btn-shoot-mobile', () => shootElement());
+            bindBtn('btn-punch-mobile', () => executePunch());
             bindBtn('btn-jump-mobile', () => jump());
-            bindBtn('btn-flame-mobile', () => { isFlaming = true; }, () => { isFlaming = false; });
-            bindBtn('btn-water-enter-mobile', () => enterWaterForm());
-            bindBtn('btn-water-exit-mobile', () => exitWaterForm());
-            bindBtn('btn-air-fly-mobile', () => activateAirFly());
-            bindBtn('btn-air-speed-mobile', () => activateAirSpeed());
-            bindBtn('btn-earth-wall-mobile', () => spawnEarthWall());
-            bindBtn('btn-earth-rocks-mobile', () => shootEarthRocks());
-            bindBtn('btn-lightning-strike-mobile', () => triggerLightningStrike());
-            bindBtn('btn-lightning-speed-mobile', () => activateLightningSpeed());
-
-            // Kamera Dokunma Kontrolü
-            let touchStartX = 0, touchStartY = 0; let activeLookTouchId = null;
-            window.addEventListener('touchstart', (e) => {
-                if (e.target.closest('.touch-btn') || e.target.closest('#joystick-zone')) return;
-                for(let i=0; i<e.changedTouches.length; i++) {
-                    const touch = e.changedTouches[i];
-                    if (touch.clientX > window.innerWidth / 2) { isLooking = true; activeLookTouchId = touch.identifier; touchStartX = touch.clientX; touchStartY = touch.clientY; }
-                }
-            }, { passive: false });
-
-            window.addEventListener('touchmove', (e) => {
-                if (!isLooking) return;
-                for(let i=0; i<e.changedTouches.length; i++) {
-                    const touch = e.changedTouches[i];
-                    if (touch.identifier === activeLookTouchId) {
-                        const deltaX = touch.clientX - touchStartX; const deltaY = touch.clientY - touchStartY;
-                        yaw -= deltaX * 0.005; pitch -= deltaY * 0.005;
-                        pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
-                        camera.rotation.y = yaw; camera.rotation.x = pitch;
-                        touchStartX = touch.clientX; touchStartY = touch.clientY;
-                    }
-                }
-            }, { passive: false });
-
-            window.addEventListener('touchend', (e) => {
-                for(let i=0; i<e.changedTouches.length; i++) { if (e.changedTouches[i].identifier === activeLookTouchId) { isLooking = false; activeLookTouchId = null; } }
-            }, { passive: false });
+            bindBtn('btn-q-mobile', () => triggerAbilityQ());
+            bindBtn('btn-r-mobile', () => triggerAbilityR());
         }
 
-        function shootElement() {
-            if (isSubmergedInWater) return;
-            const projGeo = new THREE.SphereGeometry(1.4, 32, 32);
-            const projMat = new THREE.MeshStandardMaterial({ 
-                color: selectedChar.color, emissive: selectedChar.color, emissiveIntensity: 1.2, metalness: 0.5, roughness: 0.1 
-            });
-            const proj = new THREE.Mesh(projGeo, projMat);
-            const light = new THREE.PointLight(selectedChar.color, 4, 25);
-            proj.add(light); proj.position.copy(camera.position);
-
-            const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
-            proj.userData = { velocity: dir.multiplyScalar(3.5) };
-            scene.add(proj); projectiles.push(proj);
+        function jump() {
+            if (isGrounded) { playerVelocityY = jumpStrength; isGrounded = false; }
         }
 
         function startGame() {
             document.getElementById('menu-overlay').style.display = 'none';
             document.getElementById('game-ui').style.display = 'block';
-            updateUIButtons();
-            initScene(); setupControls(); animate();
+            updateUIButtons(); initScene(); setupControls(); animate();
         }
-
         document.getElementById('btn-start').addEventListener('click', startGame);
 
+        /* --- ANA DÖNGÜ --- */
         function animate() {
             requestAnimationFrame(animate);
             const now = Date.now();
 
-            // Hava Hız Artışı (%10)
-            if (isAirSpeedActive && now > airSpeedEndTime) isAirSpeedActive = false;
+            if (isIceShieldActive && now > iceShieldEndTime) isIceShieldActive = false;
 
-            // Şimşek Hız Artışı (5 Kat Hızlı)
-            if (isLightningSpeedActive && now > lightningSpeedEndTime) isLightningSpeedActive = false;
-
-            let moveSpeed = 0.5;
-            if (isAirSpeedActive) moveSpeed *= 1.1;
-            if (isLightningSpeedActive) moveSpeed *= 5.0; // 5 Kat Hız!
-
-            // Hava Uçma Kontrolü
-            if (isFlying) {
-                if (now > flyEndTime) isFlying = false;
-                else playerVelocityY = 0;
+            if (isBlinded) {
+                document.getElementById('blind-overlay').style.opacity = '1';
+                if (now > blindEndTime) isBlinded = false;
+            } else {
+                document.getElementById('blind-overlay').style.opacity = '0';
             }
 
-            // Su Formu
-            if (isSubmergedInWater) {
-                camera.position.y = 0.6;
-                if (puddleFormMesh) puddleFormMesh.position.set(camera.position.x, 0.08, camera.position.z);
-                if (playerHP < maxHP) { playerHP += 0.25; if (playerHP > maxHP) playerHP = maxHP; }
-            } else {
-                let moveX = joyX; let moveZ = joyY;
-                if (keys.w) moveZ = -1; if (keys.s) moveZ = 1;
-                if (keys.a) moveX = -1; if (keys.d) moveX = 1;
+            if (selectedChar.name === "Gölge") {
+                const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+                const raycaster = new THREE.Raycaster(camera.position, dir);
+                const hits = raycaster.intersectObjects(cityObjects, true);
+                if (hits.length > 0 && hits[0].distance <= 35) {
+                    shadowTeleportRing.position.copy(hits[0].point);
+                    shadowTeleportRing.position.y += 0.1;
+                    shadowTeleportRing.visible = true;
+                } else shadowTeleportRing.visible = false;
+            } else if (shadowTeleportRing) shadowTeleportRing.visible = false;
 
-                const moveVector = new THREE.Vector2(moveX, moveZ);
-                if (moveVector.length() > 1) moveVector.normalize();
+            if (isPunching) {
+                punchProgress += 0.15;
+                fistMesh.position.z = -0.8 - Math.sin(punchProgress * Math.PI) * 0.6;
+                if (punchProgress >= 1) { isPunching = false; fistMesh.position.z = -0.8; }
+            }
 
-                const forward = new THREE.Vector3(); camera.getWorldDirection(forward);
-                if (!isFlying) forward.y = 0; forward.normalize();
-                
-                const side = new THREE.Vector3(); side.crossVectors(camera.up, forward).negate();
+            // Oyuncu Hareketi
+            let moveX = joyX, moveZ = joyY;
+            if (keys.w) moveZ = -1; if (keys.s) moveZ = 1;
+            if (keys.a) moveX = -1; if (keys.d) moveX = 1;
 
-                if (moveVector.length() > 0.05) {
-                    const stepForward = forward.clone().multiplyScalar(-moveVector.y * moveSpeed);
-                    const stepSide = side.clone().multiplyScalar(moveVector.x * moveSpeed);
-                    const targetPos = camera.position.clone().add(stepForward).add(stepSide);
+            const forward = new THREE.Vector3(); camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
+            const side = new THREE.Vector3(); side.crossVectors(camera.up, forward).negate();
 
-                    // Engellere (Binalara ve Duvarlara) Çarpmıyorsa İlerle!
-                    if (!checkCollision(targetPos)) {
-                        camera.position.copy(targetPos);
-                    } else {
-                        // Sadece X veya sadece Z ekseninde deneme (Kayan hareket için)
-                        const posXOnly = camera.position.clone().add(new THREE.Vector3(stepForward.x + stepSide.x, 0, 0));
-                        const posZOnly = camera.position.clone().add(new THREE.Vector3(0, 0, stepForward.z + stepSide.z));
-                        if (!checkCollision(posXOnly)) camera.position.x = posXOnly.x;
-                        if (!checkCollision(posZOnly)) camera.position.z = posZOnly.z;
+            if (Math.abs(moveX) > 0.05 || Math.abs(moveZ) > 0.05) {
+                const targetPos = camera.position.clone()
+                    .addScaledVector(forward, -moveZ * 0.45)
+                    .addScaledVector(side, moveX * 0.45);
+                if (!checkCollision(targetPos)) camera.position.copy(targetPos);
+            }
+
+            camera.position.y += playerVelocityY;
+            playerVelocityY += gravity;
+            if (camera.position.y <= playerHeight) { camera.position.y = playerHeight; playerVelocityY = 0; isGrounded = true; }
+
+            /* --- AKILLI NPC ZEKA MANTIĞI VE KENDİ ARALARINDA SAVAŞI --- */
+            npcs.forEach(npc => {
+                // Ölme Animasyonu Hesabı (Yana Yatma & Batan Vücut)
+                if (npc.isDead) {
+                    if (npc.deathProgress < 1) {
+                        npc.deathProgress += 0.05;
+                        npc.mesh.rotation.z = Math.min(Math.PI / 2, npc.deathProgress * (Math.PI / 2));
+                        npc.mesh.position.y = Math.max(0, playerHeight - npc.deathProgress * 2);
                     }
-
-                    spawnWaterTrail();
+                    return;
                 }
 
-                if (!isFlying) {
-                    const minAllowedY = playerHeight;
-                    camera.position.y += playerVelocityY;
-                    playerVelocityY += gravity;
-
-                    if (camera.position.y <= minAllowedY) { 
-                        camera.position.y = minAllowedY; 
-                        playerVelocityY = 0; 
-                        isGrounded = true; 
-                        canFly = true; 
-                    }
+                if (npc.isStunned) {
+                    if (now > npc.stunEndTime) npc.isStunned = false;
+                    return;
                 }
+
+                // En Yakın Hedefi Bul (Oyuncu veya Diğer Farklı Elementli NPC)
+                let targetPos = camera.position;
+                let minDist = npc.mesh.position.distanceTo(camera.position);
+                let targetEntity = 'player';
+
+                npcs.forEach(otherNpc => {
+                    if (otherNpc !== npc && !otherNpc.isDead && otherNpc.element.name !== npc.element.name) {
+                        const dist = npc.mesh.position.distanceTo(otherNpc.mesh.position);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            targetPos = otherNpc.mesh.position;
+                            targetEntity = otherNpc;
+                        }
+                    }
+                });
+
+                // Hedefe Bak
+                npc.mesh.lookAt(targetPos.x, npc.mesh.position.y, targetPos.z);
+
+                // Harekete Geç
+                if (minDist > 8) {
+                    const dir = new THREE.Vector3().subVectors(targetPos, npc.mesh.position).normalize();
+                    dir.y = 0;
+                    npc.mesh.position.addScaledVector(dir, 0.2);
+                } else if (minDist < 4) {
+                    const dir = new THREE.Vector3().subVectors(npc.mesh.position, targetPos).normalize();
+                    dir.y = 0;
+                    npc.mesh.position.addScaledVector(dir, 0.12);
+                }
+
+                // Ateş Etme Saldırısı
+                if (minDist < 35 && now - npc.lastAttack > 1800) {
+                    npc.lastAttack = now;
+                    const pGeo = new THREE.SphereGeometry(1, 12, 12);
+                    const pMat = new THREE.MeshBasicMaterial({ color: npc.element.color });
+                    const p = new THREE.Mesh(pGeo, pMat);
+                    p.position.copy(npc.mesh.position).add(new THREE.Vector3(0, 2, 0));
+                    const pDir = new THREE.Vector3().subVectors(targetPos, p.position).normalize();
+                    p.userData = { velocity: pDir.multiplyScalar(2.2), damage: 15, owner: npc };
+                    scene.add(p); projectiles.push(p);
+                }
+            });
+
+            /* --- MERMİ DÖNGÜSÜ & HASAR HESAPLAMA --- */
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+                p.position.add(p.userData.velocity);
+
+                if (p.userData.owner === 'player') {
+                    // Oyuncu Mermisi NPC'ye Çarptı mı?
+                    npcs.forEach(npc => {
+                        if (!npc.isDead && p.position.distanceTo(npc.mesh.position) < 2.5) {
+                            npc.hp -= p.userData.damage || 25;
+                            scene.remove(p); projectiles.splice(i, 1);
+                            if (npc.hp <= 0) killNPC(npc);
+                        }
+                    });
+                } else {
+                    // NPC Mermisi Oyuncuya Çarptı mı?
+                    if (p.position.distanceTo(camera.position) < 2.0) {
+                        let finalDmg = p.userData.damage;
+                        if (isIceShieldActive) finalDmg *= 0.5;
+                        playerHP -= finalDmg;
+                        scene.remove(p); projectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    // NPC Mermisi Başka Bir NPC'ye Çarptı mı?
+                    npcs.forEach(targetNpc => {
+                        if (targetNpc !== p.userData.owner && !targetNpc.isDead && p.position.distanceTo(targetNpc.mesh.position) < 2.5) {
+                            targetNpc.hp -= p.userData.damage;
+                            scene.remove(p); projectiles.splice(i, 1);
+                            if (targetNpc.hp <= 0) killNPC(targetNpc);
+                        }
+                    });
+                }
+
+                if (p.position.distanceTo(camera.position) > 300) { scene.remove(p); projectiles.splice(i, 1); }
             }
 
             // Can Arayüzü
+            playerHP = Math.max(0, playerHP);
             document.getElementById('hp-fill').style.width = `${(playerHP / maxHP) * 100}%`;
             document.getElementById('hp-text').innerText = `CAN: ${Math.floor(playerHP)} / ${maxHP}`;
-
-            // Ateş Püskürtme Kontrolü
-            if ((keys.q || isFlaming) && selectedChar.name === "Ateş") emitFlame();
-
-            // Toprak Duvarları Animasyon & Çarpışma Güncelleme
-            collidableBoxes = collidableBoxes.filter(box => !box.isEarthWall); // Eski duvarları temizle
-            for (let i = earthWalls.length - 1; i >= 0; i--) {
-                const wall = earthWalls[i];
-                const age = now - wall.userData.createdAt;
-
-                if (wall.userData.state === 'rising') {
-                    wall.userData.animProgress += 0.08;
-                    wall.position.y = THREE.MathUtils.lerp(wall.userData.startY, wall.userData.targetY, wall.userData.animProgress);
-                    if (wall.userData.animProgress >= 1) {
-                        wall.position.y = wall.userData.targetY;
-                        wall.userData.state = 'standing';
-                    }
-                } else if (age >= wall.userData.duration - 2000) {
-                    wall.userData.state = 'sinking';
-                    wall.position.y -= 0.08;
-                }
-
-                // Duvarın Çarpışma Kutusunu Güncelle
-                wall.userData.box.setFromObject(wall);
-                wall.userData.box.isEarthWall = true;
-                collidableBoxes.push(wall.userData.box);
-
-                if (age >= wall.userData.duration || wall.position.y <= wall.userData.startY) {
-                    scene.remove(wall);
-                    earthWalls.splice(i, 1);
-                }
-            }
-
-            // Partikül Güncellemeleri
-            for (let i = flameParticles.length - 1; i >= 0; i--) {
-                const fp = flameParticles[i]; fp.position.add(fp.userData.velocity);
-                fp.scale.multiplyScalar(1.05); fp.material.opacity -= 0.03; fp.userData.life++;
-                if (fp.userData.life >= fp.userData.maxLife || fp.material.opacity <= 0) {
-                    scene.remove(fp); flameParticles.splice(i, 1);
-                }
-            }
-
-            // Su İzleri Güncelleme
-            for (let i = waterTrails.length - 1; i >= 0; i--) {
-                const puddle = waterTrails[i];
-                const age = now - puddle.userData.createdAt;
-                if (age > puddle.userData.duration - 3000) puddle.material.opacity -= 0.005;
-                if (age >= puddle.userData.duration || puddle.material.opacity <= 0) {
-                    scene.remove(puddle); waterTrails.splice(i, 1);
-                }
-            }
-
-            // Mermiler
-            for (let i = projectiles.length - 1; i >= 0; i--) {
-                const p = projectiles[i]; p.position.add(p.userData.velocity);
-                if (p.position.distanceTo(camera.position) > 350) { scene.remove(p); projectiles.splice(i, 1); }
-            }
 
             renderer.render(scene, camera);
         }
 
         window.addEventListener('resize', () => {
             if(camera && renderer) {
-                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
             }
         });
     </script>
