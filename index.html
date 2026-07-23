@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Element Savaşları - Gelişmiş Şehir & Elementler</title>
+    <title>Element Savaşları - Gelişmiş Şehir</title>
     <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
     <style>
         * {
@@ -24,7 +24,6 @@
             background: radial-gradient(circle at center, #2b78ff 0%, #002266 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 1000;
-            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 20px, transparent 20px, transparent 40px);
         }
 
         .top-bar {
@@ -51,13 +50,13 @@
             min-width: 90px; height: 110px; background: #2a2a2a; border-radius: 12px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             border: 4px solid #111; cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.2s;
             box-shadow: 0 6px 0px #111; flex-shrink: 0;
         }
 
         .char-card.selected {
             border-color: #66ff33; background: #f0f0f0; transform: scale(1.05) translateY(-5px);
-            box-shadow: 0 8px 0px #339900, 0 10px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 0px #339900;
         }
         .char-card.selected .char-name { color: #000; text-shadow: none; }
         .char-icon { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #000; margin-bottom: 6px; }
@@ -68,7 +67,7 @@
             background: linear-gradient(180deg, #ffeb3b 0%, #ff9800 100%);
             border: 4px solid #fff; border-radius: 15px; font-size: 2.5rem;
             font-family: 'Lilita One', cursive; color: #fff;
-            text-shadow: 3px 3px 0px #cc5200; box-shadow: 0 8px 0px #cc5200, 0 10px 20px rgba(0,0,0,0.5);
+            text-shadow: 3px 3px 0px #cc5200; box-shadow: 0 8px 0px #cc5200;
             cursor: pointer; z-index: 1001;
         }
 
@@ -82,7 +81,7 @@
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             width: 280px; height: 30px; background: rgba(0,0,0,0.6);
             border: 3px solid #fff; border-radius: 15px; padding: 3px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none;
+            pointer-events: none;
         }
         .health-bar-fill {
             width: 100%; height: 100%; background: linear-gradient(180deg, #00ff66 0%, #009933 100%);
@@ -105,7 +104,6 @@
             background: white; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999;
         }
 
-        /* --- HASAR YAZILARI & CAN BARLARI --- */
         .damage-pop {
             position: absolute; color: #ff2222; font-size: 24px; font-weight: bold;
             text-shadow: 2px 2px 0px #000, -1px -1px 0px #000;
@@ -126,7 +124,7 @@
             width: 100%; height: 100%; background: #00ff44; border-radius: 3px;
         }
 
-        /* JOYSTICK & BUTONLAR */
+        /* JOYSTICK & DOKUNMA ALANLARI */
         #joystick-zone {
             position: absolute; bottom: 40px; left: 40px; width: 140px; height: 140px;
             background: rgba(0, 0, 0, 0.3); border: 4px solid rgba(255, 255, 255, 0.6);
@@ -137,14 +135,13 @@
             position: absolute; top: 50%; left: 50%; width: 60px; height: 60px;
             background: linear-gradient(135deg, #ffffff, #cccccc); border: 3px solid #000;
             border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
         }
 
         .touch-btn {
             position: absolute; border: 4px solid #000; border-radius: 50%; pointer-events: auto;
             display: flex; justify-content: center; align-items: center; text-align: center;
             color: white; font-size: 12px; text-shadow: 2px 2px 0px #000; line-height: 1.1;
-            box-shadow: 0 6px 0px #000, 0 10px 15px rgba(0,0,0,0.5); cursor: pointer; z-index: 200;
+            box-shadow: 0 6px 0px #000; cursor: pointer; z-index: 200;
         }
         #btn-jump-mobile { bottom: 40px; right: 40px; width: 85px; height: 85px; font-size: 18px; background: linear-gradient(180deg, #66ccff 0%, #0066cc 100%); }
         #btn-shoot-mobile { bottom: 140px; right: 40px; width: 75px; height: 75px; font-size: 15px; background: linear-gradient(180deg, #ff6666 0%, #cc0000 100%); }
@@ -152,6 +149,12 @@
 
         #btn-q-mobile { bottom: 140px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #aa00ff 0%, #440088 100%); display: none; }
         #btn-r-mobile { bottom: 230px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #00e5ff 0%, #006688 100%); display: none; }
+        
+        /* MOBİL KAMERA SÜRÜKLEME ALANI */
+        #touch-look-zone {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: auto; z-index: 50;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -168,6 +171,7 @@
     </div>
 
     <div id="game-ui">
+        <div id="touch-look-zone"></div>
         <div id="blind-overlay"></div>
         <div class="health-bar-container">
             <div class="health-bar-fill" id="hp-fill"></div>
@@ -288,7 +292,6 @@
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); 
@@ -321,7 +324,7 @@
             lightLaserMesh.visible = false;
             scene.add(lightLaserMesh);
 
-            createUltraDetailedDayCity();
+            createOriginalDetailedCity();
             spawn20SmartNPCs();
         }
 
@@ -342,8 +345,8 @@
             return false;
         }
 
-        /* --- DETAYLI GÜNDÜZ ŞEHRİ --- */
-        function createUltraDetailedDayCity() {
+        /* --- ORİJİNAL ZENGİN VE CANLI ŞEHİR HARİTASI --- */
+        function createOriginalDetailedCity() {
             collidableBoxes = []; cityObjects = [];
 
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.8 });
@@ -367,24 +370,30 @@
                 sideX1.position.set(0, 0.2, r + 12); scene.add(sideX1);
                 const sideX2 = new THREE.Mesh(new THREE.BoxGeometry(1200, 0.4, 4), sidewalkMat);
                 sideX2.position.set(0, 0.2, r - 12); scene.add(sideX2);
+
+                for(let l = -550; l <= 550; l += 30) {
+                    const lineX = new THREE.Mesh(new THREE.PlaneGeometry(10, 1), lineMat);
+                    lineX.rotation.x = -Math.PI / 2; lineX.position.set(l, 0.08, r); scene.add(lineX);
+                }
             }
 
-            const parkArea = new THREE.Mesh(new THREE.BoxGeometry(90, 0.3, 90), grassMat);
+            const parkArea = new THREE.Mesh(new THREE.BoxGeometry(100, 0.3, 100), grassMat);
             parkArea.position.set(0, 0.15, 0); scene.add(parkArea);
 
             const bMaterials = [
-                new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.3 }),
-                new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 0.2 }),
-                new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.4 })
+                new THREE.MeshStandardMaterial({ color: 0x34495e, roughness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0x8e44ad, roughness: 0.2 }),
+                new THREE.MeshStandardMaterial({ color: 0x2980b9, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ color: 0xd35400, roughness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0x27ae60, roughness: 0.2 })
             ];
-            const glassMat = new THREE.MeshStandardMaterial({ color: 0x81d4fa, roughness: 0.1, metalness: 0.8 });
 
             const gridSpacing = 70;
             for (let bx = -260; bx <= 260; bx += gridSpacing) {
                 for (let bz = -260; bz <= 260; bz += gridSpacing) {
-                    if (Math.abs(bx) < 45 && Math.abs(bz) < 45) continue;
+                    if (Math.abs(bx) < 50 && Math.abs(bz) < 50) continue;
 
-                    const bh = 30 + Math.random() * 65;
+                    const bh = 35 + Math.random() * 60;
                     const bw = 26, bd = 26;
 
                     const bMat = bMaterials[Math.floor(Math.random() * bMaterials.length)];
@@ -397,37 +406,54 @@
             }
         }
 
-        /* --- İNSANSI GERÇEKÇİ NPC TASARIMI --- */
+        /* --- GERÇEKÇİ İNSANSI BOT MODELİ (DETAYLI MODEL) --- */
         function createSingleNPC(char) {
             const npcGroup = new THREE.Group();
 
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.6 });
-            const clothesMat = new THREE.MeshStandardMaterial({ color: char.color, roughness: 0.4 });
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.5 });
+            const clothesMat = new THREE.MeshStandardMaterial({ color: char.color, roughness: 0.3 });
+            const darkMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
 
-            // Gövde (Torso)
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.4, 0.5), clothesMat);
-            torso.position.y = 1.9; npcGroup.add(torso);
+            // 1. Gövde ve Ceket
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.5, 0.6), clothesMat);
+            torso.position.y = 1.95; npcGroup.add(torso);
 
-            // Baş
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), skinMat);
-            head.position.y = 2.9; npcGroup.add(head);
+            // 2. Kafa & Yüz Detayları
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), skinMat);
+            head.position.y = 3.0; npcGroup.add(head);
 
-            // Bacaklar
-            const legLeft = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.2, 0.4), clothesMat);
-            legLeft.position.set(-0.25, 0.6, 0); npcGroup.add(legLeft);
+            const hair = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.3, 16), darkMat);
+            hair.position.y = 3.3; npcGroup.add(hair);
 
-            const legRight = legLeft.clone();
-            legRight.position.set(0.25, 0.6, 0); npcGroup.add(legRight);
+            const eyeGeo = new THREE.SphereGeometry(0.06, 8, 8);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.12, 3.05, 0.35); npcGroup.add(eyeL);
+            const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(0.12, 3.05, 0.35); npcGroup.add(eyeR);
 
-            // Kollar
-            const armLeft = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.2, 0.35), skinMat);
-            armLeft.position.set(-0.7, 1.8, 0); npcGroup.add(armLeft);
+            // 3. Eklemli Bacaklar ve Ayakkabılar
+            const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.16, 1.2, 12), darkMat);
+            legL.position.set(-0.28, 0.6, 0); npcGroup.add(legL);
 
-            const armRight = armLeft.clone();
-            armRight.position.set(0.7, 1.8, 0); npcGroup.add(armRight);
+            const legR = legL.clone(); legR.position.set(0.28, 0.6, 0); npcGroup.add(legR);
+
+            const shoeGeo = new THREE.BoxGeometry(0.25, 0.2, 0.45);
+            const shoeL = new THREE.Mesh(shoeGeo, darkMat); shoeL.position.set(-0.28, 0.1, 0.1); npcGroup.add(shoeL);
+            const shoeR = shoeL.clone(); shoeR.position.set(0.28, 0.1, 0.1); npcGroup.add(shoeR);
+
+            // 4. Eklemli Kollar ve Eller
+            const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.14, 1.2, 12), clothesMat);
+            armL.position.set(-0.72, 1.9, 0); armL.rotation.z = 0.1; npcGroup.add(armL);
+
+            const armR = armL.clone(); armR.position.set(0.72, 1.9, 0); armR.rotation.z = -0.1; npcGroup.add(armR);
+
+            const handGeo = new THREE.SphereGeometry(0.12, 8, 8);
+            const handL = new THREE.Mesh(handGeo, skinMat); handL.position.set(-0.75, 1.2, 0); npcGroup.add(handL);
+            const handR = handL.clone(); handR.position.set(0.75, 1.2, 0); npcGroup.add(handR);
 
             let rx = (Math.random() - 0.5) * 280;
             let rz = (Math.random() - 0.5) * 280;
+            
+            // BOTLARIN KESİNLİKLE HARİTA ALTINA İNMEYECEK YERLEŞİMİ (Y = 0)
             npcGroup.position.set(rx, 0, rz);
 
             scene.add(npcGroup);
@@ -532,13 +558,13 @@
             scene.add(proj); projectiles.push(proj);
         }
 
-        /* --- DÜZELTİLMİŞ Q VE R ÖZEL YETENEKLERİ --- */
+        /* --- Q VE R ÖZEL YETENEKLERİ --- */
         function triggerAbilityQ() {
             if (isGameOver) return;
             const now = Date.now();
 
             if (selectedChar.name === "Işık") {
-                // Işık elementi basılı tutmalı / toggle yapıldı
+                // Işık elementi için cooldown yok! (basılı tutma / dokunma çalışıyor)
                 return; 
             }
 
@@ -547,7 +573,6 @@
             const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
 
             if (selectedChar.name === "Ateş") {
-                // Alev Dalgası
                 for(let i = -2; i <= 2; i++) {
                     const pGeo = new THREE.SphereGeometry(1.8, 16, 16);
                     const pMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
@@ -557,20 +582,18 @@
                     p.userData = { velocity: spreadDir.multiplyScalar(2.5), damage: 130, owner: 'player' };
                     scene.add(p); projectiles.push(p);
                 }
-                cooldowns.q = now + 4000;
+                cooldowns.q = now + 3500;
             }
             else if (selectedChar.name === "Su") {
-                // Su Hortumu
                 const pGeo = new THREE.CylinderGeometry(1.5, 0.5, 6, 16);
                 const pMat = new THREE.MeshBasicMaterial({ color: 0x0099ff, transparent: true, opacity: 0.8 });
                 const p = new THREE.Mesh(pGeo, pMat);
                 p.position.copy(camera.position).addScaledVector(dir, 3);
                 p.userData = { velocity: dir.multiplyScalar(2.0), damage: 150, owner: 'player' };
                 scene.add(p); projectiles.push(p);
-                cooldowns.q = now + 5000;
+                cooldowns.q = now + 4000;
             }
             else if (selectedChar.name === "Buz") {
-                // Buz Kayalıkları Wall
                 const wallGroup = new THREE.Group();
                 for (let i = -3; i <= 3; i++) {
                     const spikeGeo = new THREE.ConeGeometry(1.2, 7 + Math.random() * 3, 5);
@@ -586,18 +609,16 @@
                 const box = new THREE.Box3().setFromObject(wallGroup);
                 collidableBoxes.push(box);
                 setTimeout(() => { scene.remove(wallGroup); collidableBoxes = collidableBoxes.filter(b => b !== box); }, 8000);
-                cooldowns.q = now + 8000;
+                cooldowns.q = now + 6000;
             } 
             else if (selectedChar.name === "Gölge") {
-                // Gölge Işınlanma
                 if (shadowTeleportRing.visible) {
                     camera.position.x = shadowTeleportRing.position.x;
                     camera.position.z = shadowTeleportRing.position.z;
-                    cooldowns.q = now + 5000;
+                    cooldowns.q = now + 4000;
                 }
             } 
             else if (selectedChar.name === "Şimşek") {
-                // Yıldırım Çarpması
                 const raycaster = new THREE.Raycaster(camera.position, dir);
                 const hits = raycaster.intersectObjects(cityObjects, true);
                 let targetPoint = camera.position.clone().addScaledVector(dir, 40);
@@ -615,12 +636,11 @@
                         applyDamageToNPC(npc, 200);
                     }
                 });
-                cooldowns.q = now + 5000;
+                cooldowns.q = now + 4000;
             }
             else {
-                // Diğer Elementler Q Yeteneği
                 shootElement();
-                cooldowns.q = now + 3000;
+                cooldowns.q = now + 2500;
             }
         }
 
@@ -632,11 +652,11 @@
             if (selectedChar.name === "Buz") {
                 isIceShieldActive = true;
                 iceShieldEndTime = now + 6000;
-                cooldowns.r = now + 16000;
+                cooldowns.r = now + 14000;
             } 
             else if (selectedChar.name === "Gölge" || selectedChar.name === "Ateş" || selectedChar.name === "Lav") {
                 shootBigSphere(selectedChar.color, 5000, 220, 'player');
-                cooldowns.r = now + 12000;
+                cooldowns.r = now + 10000;
             } 
             else if (selectedChar.name === "Işık") {
                 isBlinded = true;
@@ -647,12 +667,12 @@
                         npc.isStunned = true; npc.stunEndTime = Date.now() + 4000;
                     }
                 });
-                cooldowns.r = now + 12000;
+                cooldowns.r = now + 10000;
             }
             else if (selectedChar.name === "Doğa") {
                 playerHP = Math.min(maxHP, playerHP + 300);
                 createDamageText(camera.position, -300);
-                cooldowns.r = now + 15000;
+                cooldowns.r = now + 12000;
             }
         }
 
@@ -692,7 +712,7 @@
                 const key = e.key.toLowerCase();
                 if (key === 'w') keys.w = true; if (key === 's') keys.s = true;
                 if (key === 'a') keys.a = true; if (key === 'd') keys.d = true;
-                if (key === 'e') shootElement(); // E ATEŞ ETME
+                if (key === 'e') shootElement();
                 if (key === 'q') {
                     if (selectedChar.name === "Işık") isLightLaserActive = true;
                     else triggerAbilityQ();
@@ -708,6 +728,46 @@
                 if (key === 'a') keys.a = false; if (key === 'd') keys.d = false;
                 if (key === 'q' && selectedChar.name === "Işık") isLightLaserActive = false;
             });
+
+            /* --- MOBİL KAMERA DÖNDÜRME VE DOKUNMA MANTIĞI --- */
+            let touchLookId = null;
+            let lastTouchX = 0, lastTouchY = 0;
+
+            const lookZone = document.getElementById('touch-look-zone');
+            lookZone.addEventListener('touchstart', (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const t = e.changedTouches[i];
+                    if (t.clientX > window.innerWidth / 3 && touchLookId === null) {
+                        touchLookId = t.identifier;
+                        lastTouchX = t.clientX;
+                        lastTouchY = t.clientY;
+                    }
+                }
+            }, { passive: false });
+
+            lookZone.addEventListener('touchmove', (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const t = e.changedTouches[i];
+                    if (t.identifier === touchLookId) {
+                        const dx = t.clientX - lastTouchX;
+                        const dy = t.clientY - lastTouchY;
+                        yaw -= dx * 0.005;
+                        pitch -= dy * 0.005;
+                        pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+                        camera.rotation.y = yaw; camera.rotation.x = pitch;
+                        lastTouchX = t.clientX;
+                        lastTouchY = t.clientY;
+                    }
+                }
+            }, { passive: false });
+
+            lookZone.addEventListener('touchend', (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchLookId) {
+                        touchLookId = null;
+                    }
+                }
+            }, { passive: false });
 
             const joyZone = document.getElementById('joystick-zone');
             const joyKnob = document.getElementById('joystick-knob');
@@ -747,7 +807,7 @@
             bindBtn('btn-jump-mobile', () => jump());
             bindBtn('btn-q-mobile', () => {
                 if(selectedChar.name === "Işık") {
-                    isLightLaserActive = !isLightLaserActive; // MOBİLDE 1 BASIŞ AÇAR 2 BASIŞ KAPATIR
+                    isLightLaserActive = !isLightLaserActive;
                 } else {
                     triggerAbilityQ();
                 }
@@ -782,7 +842,7 @@
                 document.getElementById('blind-overlay').style.opacity = '0';
             }
 
-            // Gölge Işınlanma Hedef Halkası
+            // Gölge Işınlanma Halka Tespiti
             if (selectedChar.name === "Gölge") {
                 const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
                 const raycaster = new THREE.Raycaster(camera.position, dir);
@@ -794,7 +854,7 @@
                 } else shadowTeleportRing.visible = false;
             } else if (shadowTeleportRing) shadowTeleportRing.visible = false;
 
-            // Işık Lazeri Q
+            // Işık Lazeri Q (BEKLEME SÜRESİZ KESİNTİSİZ LAZER)
             if (selectedChar.name === "Işık" && isLightLaserActive) {
                 const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
                 lightLaserMesh.position.copy(camera.position).addScaledVector(dir, 50);
@@ -803,7 +863,7 @@
 
                 npcs.forEach(npc => {
                     if (!npc.isDead && camera.position.distanceTo(npc.mesh.position) < 60) {
-                        applyDamageToNPC(npc, 4);
+                        applyDamageToNPC(npc, 5);
                     }
                 });
             } else if (lightLaserMesh) {
@@ -835,7 +895,7 @@
             playerVelocityY += gravity;
             if (camera.position.y <= playerHeight) { camera.position.y = playerHeight; playerVelocityY = 0; isGrounded = true; }
 
-            /* --- NPC HAREKETİ VE CAN BARLARI --- */
+            /* --- NPC HAREKETİ & KONTROLÜ (BUG FIX: YENİDEN YERİN ALTINA GİRMEME KORUMASI) --- */
             npcs.forEach(npc => {
                 if (npc.isDead) {
                     if (npc.deathProgress < 1) {
@@ -845,6 +905,9 @@
                     npc.hpBarEl.style.display = 'none';
                     return;
                 }
+
+                // YERİN ALTINA DÜŞMEYİ ENGELLEYEN SABİT KOORDİNAT SIFIRLAMASI
+                npc.mesh.position.y = 0;
 
                 const npcVec = npc.mesh.position.clone();
                 npcVec.y += 3.5;
@@ -879,8 +942,10 @@
                     }
                 });
 
-                npc.mesh.lookAt(targetPos.x, npc.mesh.position.y, targetPos.z);
-                const toTarget = new THREE.Vector3().subVectors(targetPos, npc.mesh.position).normalize();
+                npc.mesh.lookAt(targetPos.x, 0, targetPos.z);
+                const toTarget = new THREE.Vector3().subVectors(targetPos, npc.mesh.position);
+                toTarget.y = 0;
+                toTarget.normalize();
                 npc.targetDir = toTarget;
 
                 const idealDistMin = 10, idealDistMax = 22;
@@ -955,4 +1020,4 @@
         });
     </script>
 </body>
-</html>ss
+</html>
