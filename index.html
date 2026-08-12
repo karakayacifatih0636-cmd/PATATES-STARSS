@@ -47,10 +47,12 @@
             margin-bottom: 20px; text-align: center; letter-spacing: 2px; transform: skew(-5deg);
         }
 
+        /* Düzeltme: Kaydırma çubuğu ve genişlik uyumu güncellendi */
         .character-select-container {
             display: flex; gap: 15px; overflow-x: auto; width: 90%; max-width: 800px; padding: 15px;
             background: rgba(0, 0, 0, 0.5); border-radius: 15px; border: 3px solid #4d94ff;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.8); min-height: 140px; align-items: center; justify-content: flex-start;
+            touch-action: pan-x; pointer-events: auto;
         }
 
         .char-card {
@@ -264,7 +266,10 @@
             });
         }
 
-        renderCharacterCards();
+        // DOM Yüklendiğinde Kartları Menüye Ekle
+        document.addEventListener("DOMContentLoaded", () => {
+            renderCharacterCards();
+        });
 
         let scene, camera, renderer;
         let keys = { w: false, a: false, s: false, d: false, q: false, r: false };
@@ -272,28 +277,24 @@
         let flameParticles = [];
         let waterTrails = [];
         let earthWalls = [];
-        let cityObjects = []; // Raycast için
-        let collidableBoxes = []; // Duvar/Bina Çarpışma Bounding Box'ları
+        let cityObjects = [];
+        let collidableBoxes = [];
         let lastWaterPos = new THREE.Vector3();
 
         let isFlaming = false;
         let isSubmergedInWater = false;
 
-        // Hava Değişkenleri
         let isAirSpeedActive = false, airSpeedEndTime = 0, airSpeedCooldownEnd = 0;
         let isFlying = false, flyEndTime = 0, canFly = true;
 
-        // Şimşek Değişkenleri
         let isLightningSpeedActive = false, lightningSpeedEndTime = 0, lightningSpeedCooldownEnd = 0;
 
-        // Yeni Element Değişkenleri
         let iceShieldActive = false, iceShieldEndTime = 0, iceShieldCooldownEnd = 0, iceShieldMesh = null;
         let shadowRangeRing = null;
         let shadowCooldownEnd = 0;
         let lightOrbCooldownEnd = 0;
         let lightLaserMesh = null;
 
-        // Yumruk Animasyonu
         let fistMesh = null;
         let isPunching = false, punchProgress = 0;
 
@@ -338,7 +339,6 @@
             setupMobileControls();
         }
 
-        /* --- SİLİFTLOCK (POINTER LOCK) KAMERA SİSTEMİ --- */
         function setupPointerLock() {
             document.addEventListener('click', () => {
                 if (document.getElementById('game-ui').style.display === 'block') {
@@ -357,9 +357,7 @@
             });
         }
 
-        /* --- OYUNCU MODELLERİ (YUMRUK & KALKAN & MENZİL) --- */
         function createPlayerElements() {
-            // Yumruk Modeli
             const fistGeo = new THREE.BoxGeometry(0.4, 0.4, 0.8);
             const fistMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
             fistMesh = new THREE.Mesh(fistGeo, fistMat);
@@ -367,7 +365,6 @@
             camera.add(fistMesh);
             scene.add(camera);
 
-            // Buz Kalkanı Görseli
             const shieldGeo = new THREE.IcosahedronGeometry(2.5, 2);
             const shieldMat = new THREE.MeshStandardMaterial({
                 color: 0x00ffff, transparent: true, opacity: 0.4, roughness: 0.1, metalness: 0.1
@@ -376,7 +373,6 @@
             iceShieldMesh.visible = false;
             scene.add(iceShieldMesh);
 
-            // Gölge Menzil Halka Görseli
             const ringGeo = new THREE.RingGeometry(0.1, 25, 32);
             const ringMat = new THREE.MeshBasicMaterial({ color: 0x8a2be2, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
             shadowRangeRing = new THREE.Mesh(ringGeo, ringMat);
@@ -385,6 +381,10 @@
             scene.add(shadowRangeRing);
         }
 
-        /* --- BİNA VE ENGEL ÇARPIŞMA KONTROLÜ --- */
         function checkCollision(newPos) {
-            const playerRadius 
+            const playerRadius = 0.8;
+            const playerMinY = newPos.y - playerHeight + 0.2;
+            const playerMaxY = newPos.y + 0.5;
+
+            for (let i = 0; i < collidableBoxes.length; i++) {
+                const box = collidableB
