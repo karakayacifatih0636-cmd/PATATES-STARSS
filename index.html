@@ -134,6 +134,10 @@
             bottom: 150px; right: 40px; width: 75px; height: 75px; font-size: 16px;
             background: linear-gradient(180deg, #ff6666 0%, #cc0000 100%);
         }
+        #btn-punch-mobile {
+            bottom: 240px; right: 40px; width: 75px; height: 75px; font-size: 14px;
+            background: linear-gradient(180deg, #ffaa00 0%, #cc6600 100%);
+        }
 
         /* Özel Element Mobil Butonları */
         #btn-flame-mobile { bottom: 150px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #ff9900 0%, #ff3300 100%); display: none; }
@@ -145,6 +149,14 @@
         #btn-earth-rocks-mobile { bottom: 240px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #cd853f 0%, #8b4513 100%); display: none; }
         #btn-lightning-strike-mobile { bottom: 150px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #ffff66 0%, #ffcc00 100%); color: #000; text-shadow: none; display: none; }
         #btn-lightning-speed-mobile { bottom: 240px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #ffffff 0%, #ffcc00 100%); color: #000; text-shadow: none; display: none; }
+        
+        /* Yeni Mobil Butonlar */
+        #btn-ice-wall-mobile { bottom: 150px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #00ffff 0%, #0099ff 100%); display: none; }
+        #btn-ice-shield-mobile { bottom: 240px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #b3ffff 0%, #3399ff 100%); display: none; }
+        #btn-shadow-teleport-mobile { bottom: 150px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #8a2be2 0%, #4b0082 100%); display: none; }
+        #btn-shadow-orb-mobile { bottom: 240px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #9932cc 0%, #2a0066 100%); display: none; }
+        #btn-light-laser-mobile { bottom: 150px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #ffffff 0%, #ffeb3b 100%); color: #000; text-shadow: none; display: none; }
+        #btn-light-orb-mobile { bottom: 240px; right: 130px; width: 75px; height: 75px; background: linear-gradient(180deg, #fffafa 0%, #ffd700 100%); color: #000; text-shadow: none; display: none; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -178,6 +190,14 @@
         <div class="touch-btn" id="btn-lightning-strike-mobile">YILDIRIM<br>(Q)</div>
         <div class="touch-btn" id="btn-lightning-speed-mobile">5X HIZ<br>(R)</div>
 
+        <div class="touch-btn" id="btn-ice-wall-mobile">BUZ DUVAR<br>(Q)</div>
+        <div class="touch-btn" id="btn-ice-shield-mobile">KALKAN<br>(R)</div>
+        <div class="touch-btn" id="btn-shadow-teleport-mobile">IŞINLAN<br>(Q)</div>
+        <div class="touch-btn" id="btn-shadow-orb-mobile">GÖLGE KÜRE<br>(R)</div>
+        <div class="touch-btn" id="btn-light-laser-mobile">LAZER<br>(Q)</div>
+        <div class="touch-btn" id="btn-light-orb-mobile">IŞIK KÜRE<br>(R)</div>
+
+        <div class="touch-btn" id="btn-punch-mobile">YUMRUK</div>
         <div class="touch-btn" id="btn-shoot-mobile">ATEŞ</div>
         <div class="touch-btn" id="btn-jump-mobile">ZIPLA</div>
     </div>
@@ -210,7 +230,13 @@
                 'btn-earth-wall-mobile': selectedChar.name === "Toprak",
                 'btn-earth-rocks-mobile': selectedChar.name === "Toprak",
                 'btn-lightning-strike-mobile': selectedChar.name === "Şimşek",
-                'btn-lightning-speed-mobile': selectedChar.name === "Şimşek"
+                'btn-lightning-speed-mobile': selectedChar.name === "Şimşek",
+                'btn-ice-wall-mobile': selectedChar.name === "Buz",
+                'btn-ice-shield-mobile': selectedChar.name === "Buz",
+                'btn-shadow-teleport-mobile': selectedChar.name === "Gölge",
+                'btn-shadow-orb-mobile': selectedChar.name === "Gölge",
+                'btn-light-laser-mobile': selectedChar.name === "Işık",
+                'btn-light-orb-mobile': selectedChar.name === "Işık"
             };
 
             for (let id in btns) {
@@ -260,10 +286,18 @@
         // Şimşek Değişkenleri
         let isLightningSpeedActive = false, lightningSpeedEndTime = 0, lightningSpeedCooldownEnd = 0;
 
-        let isRightMouseDown = false, isLooking = false;
-        let previousMousePosition = { x: 0, y: 0 };
-        let yaw = 0, pitch = 0;
+        // Yeni Element Değişkenleri
+        let iceShieldActive = false, iceShieldEndTime = 0, iceShieldCooldownEnd = 0, iceShieldMesh = null;
+        let shadowRangeRing = null;
+        let shadowCooldownEnd = 0;
+        let lightOrbCooldownEnd = 0;
+        let lightLaserMesh = null;
 
+        // Yumruk Animasyonu
+        let fistMesh = null;
+        let isPunching = false, punchProgress = 0;
+
+        let yaw = 0, pitch = 0;
         let playerVelocityY = 0;
         let isGrounded = true;
         const gravity = -0.02;
@@ -299,81 +333,58 @@
             scene.add(sunLight);
 
             createUltraDetailedCity();
+            createPlayerElements();
+            setupPointerLock();
+            setupMobileControls();
+        }
+
+        /* --- SİLİFTLOCK (POINTER LOCK) KAMERA SİSTEMİ --- */
+        function setupPointerLock() {
+            document.addEventListener('click', () => {
+                if (document.getElementById('game-ui').style.display === 'block') {
+                    document.body.requestPointerLock();
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === document.body) {
+                    yaw -= e.movementX * 0.002;
+                    pitch -= e.movementY * 0.002;
+                    pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+                    camera.rotation.x = pitch;
+                    camera.rotation.y = yaw;
+                }
+            });
+        }
+
+        /* --- OYUNCU MODELLERİ (YUMRUK & KALKAN & MENZİL) --- */
+        function createPlayerElements() {
+            // Yumruk Modeli
+            const fistGeo = new THREE.BoxGeometry(0.4, 0.4, 0.8);
+            const fistMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
+            fistMesh = new THREE.Mesh(fistGeo, fistMat);
+            fistMesh.position.set(0.6, -0.4, -0.8);
+            camera.add(fistMesh);
+            scene.add(camera);
+
+            // Buz Kalkanı Görseli
+            const shieldGeo = new THREE.IcosahedronGeometry(2.5, 2);
+            const shieldMat = new THREE.MeshStandardMaterial({
+                color: 0x00ffff, transparent: true, opacity: 0.4, roughness: 0.1, metalness: 0.1
+            });
+            iceShieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+            iceShieldMesh.visible = false;
+            scene.add(iceShieldMesh);
+
+            // Gölge Menzil Halka Görseli
+            const ringGeo = new THREE.RingGeometry(0.1, 25, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x8a2be2, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+            shadowRangeRing = new THREE.Mesh(ringGeo, ringMat);
+            shadowRangeRing.rotation.x = Math.PI / 2;
+            shadowRangeRing.visible = false;
+            scene.add(shadowRangeRing);
         }
 
         /* --- BİNA VE ENGEL ÇARPIŞMA KONTROLÜ --- */
         function checkCollision(newPos) {
-            const playerRadius = 0.8;
-            const playerMinY = newPos.y - playerHeight + 0.2;
-            const playerMaxY = newPos.y + 0.5;
-
-            for (let i = 0; i < collidableBoxes.length; i++) {
-                const box = collidableBoxes[i];
-                // Yüksekliği uygun mu?
-                if (playerMaxY >= box.min.y && playerMinY <= box.max.y) {
-                    // X ve Z ekseninde yarıçap genişletmeli çarpışma kontrolü
-                    if (newPos.x + playerRadius > box.min.x && newPos.x - playerRadius < box.max.x &&
-                        newPos.z + playerRadius > box.min.z && newPos.z - playerRadius < box.max.z) {
-                        return true; // Engel var, geçemez!
-                    }
-                }
-            }
-            return false;
-        }
-
-        /* --- ŞEHİR YAPISI --- */
-        function createUltraDetailedCity() {
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a1c1e, roughness: 0.9 });
-            const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
-            scene.add(ground);
-            cityObjects.push(ground);
-
-            const matConcrete = new THREE.MeshStandardMaterial({ color: 0x7c838a, roughness: 0.7 });
-            const matDarkConcrete = new THREE.MeshStandardMaterial({ color: 0x32373d, roughness: 0.6 });
-            const matBeige = new THREE.MeshStandardMaterial({ color: 0xd6caa9, roughness: 0.8 });
-            const matBrick = new THREE.MeshStandardMaterial({ color: 0x9e4333, roughness: 0.9 });
-            const matGlass = new THREE.MeshStandardMaterial({ color: 0x112233, roughness: 0.1, metalness: 0.9 });
-            const matWindowGlow = new THREE.MeshBasicMaterial({ color: 0xffe899 });
-            const matSidewalk = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 });
-            const matAsphaltLine = new THREE.MeshBasicMaterial({ color: 0xf5cf38 });
-            const matWhiteLine = new THREE.MeshBasicMaterial({ color: 0xffffff });
-            const matMetal = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8, roughness: 0.3 });
-            const matRedMetal = new THREE.MeshStandardMaterial({ color: 0xcc0000, roughness: 0.4 });
-            const matLampGlow = new THREE.MeshBasicMaterial({ color: 0xffffaa });
-            const matNeon1 = new THREE.MeshBasicMaterial({ color: 0xff0055 });
-            const matNeon2 = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
-            const matNeon3 = new THREE.MeshBasicMaterial({ color: 0x33ff33 });
-            const matTreeTrunk = new THREE.MeshStandardMaterial({ color: 0x4a3222 });
-            const matFoliage = new THREE.MeshStandardMaterial({ color: 0x226622, roughness: 0.8 });
-            const matCarColors = [
-                new THREE.MeshStandardMaterial({ color: 0xbb0000, metalness: 0.5, roughness: 0.3 }),
-                new THREE.MeshStandardMaterial({ color: 0x0033aa, metalness: 0.5, roughness: 0.3 }),
-                new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.7, roughness: 0.2 }),
-                new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.6, roughness: 0.3 }),
-                new THREE.MeshStandardMaterial({ color: 0xeeaa00, metalness: 0.4, roughness: 0.4 })
-            ];
-
-            const winGeo = new THREE.PlaneGeometry(0.9, 1.6);
-            const buildingMaterials = [matConcrete, matDarkConcrete, matBeige, matBrick, matGlass];
-            const gridSpacing = 40;
-
-            for (let i = -160; i <= 160; i += gridSpacing) {
-                for (let pos = -200; pos <= 200; pos += 8) {
-                    const lineZ = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 4), matAsphaltLine);
-                    lineZ.rotation.x = -Math.PI / 2; lineZ.position.set(i, 0.02, pos); scene.add(lineZ);
-                    const lineX = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.3), matAsphaltLine);
-                    lineX.rotation.x = -Math.PI / 2; lineX.position.set(pos, 0.02, i); scene.add(lineX);
-                }
-
-                for (let j = -160; j <= 160; j += gridSpacing) {
-                    for (let w = -5; w <= 5; w += 1.8) {
-                        const stripe1 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 5), matWhiteLine);
-                        stripe1.rotation.x = -Math.PI / 2; stripe1.position.set(i + w, 0.03, j + 9); scene.add(stripe1);
-                        const stripe2 = new THREE.Mesh(new THREE.PlaneGeometry(5, 1.2), matWhiteLine);
-                        stripe2.rotation.x = -Math.PI / 2; stripe2.position.set(i + 9, 0.03, j + w); scene.add(stripe2);
-                    }
-                    createTrafficLight(i - 8, j - 8, 0); createTrafficLight(i + 8, j + 8, Math.PI);
-                }
-          
+            const playerRadius 
